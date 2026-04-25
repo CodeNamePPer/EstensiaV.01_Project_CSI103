@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Game Over</title>
+<link rel="stylesheet" href="over.css">
+</head>
+<body>
+
+<div class="panel">
+    <h1 class="title">
+        <img class = "skull"src="img/skull.png" class="icon-title">
+        Game Over
+    </h1>
+
+    <div class="stats">
+
+        <div class="row">
+            <img class="sword" src="img/sword.png">
+            <span>Dmg All : <span id="stat-dmg">0</span></span>
+        </div>
+
+        <div class="row">
+            <img class = "coin" src="img/coin.png">
+            <span>Coin : <span id="stat-coin">0</span></span>
+        </div>
+
+        <div class="row">
+            <img class = "wave" src="img/wave.png">
+            <span>Wave : <span id="stat-wave">0</span></span>
+        </div>
+
+        <div class="row">
+            <img class = "level" src="img/level.png">
+            <span>Lv : <span id="stat-lv">0</span></span>
+        </div>
+
+    </div>
+
+    <button class="btn" id="back-btn">⬅ Back</button>
+</div>
+
+<script>
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const dmg = urlParams.get('dmg') || '0';
+    const coin = urlParams.get('coin') || '0';
+    const wave = urlParams.get('wave') || '0';
+    const lv = urlParams.get('lv') || '0';
+
+    // Update UI
+    document.getElementById('stat-dmg').innerText = dmg;
+    document.getElementById('stat-coin').innerText = coin;
+    document.getElementById('stat-wave').innerText = wave;
+    document.getElementById('stat-lv').innerText = lv;
+
+    // Handle Back button
+    document.getElementById('back-btn').onclick = () => {
+        // Go back to the main menu or character selection
+        window.location.href = 'index.html';
+    };
+</script>
+
+</body>
+</html>

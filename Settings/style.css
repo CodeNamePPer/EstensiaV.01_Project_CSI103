@@ -1,0 +1,104 @@
+@font-face {
+  font-family: 'BadBoys';
+  src: url('../fonts/BadBoys.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Blasphemous_3';
+  src: url('../fonts/Blasphemous_3.ttf') format('truetype');
+}
+
+body {
+    margin: 0;
+    background-color: #0D0000;
+}
+
+#gameCanvas {
+    position: relative;
+    width: 100vw;
+    height: 100dvh;
+    image-rendering: pixelated;
+    overflow: hidden;
+}
+
+#Main_Logo{
+    position: absolute;
+    top: 120px;
+    left: 50%;
+    transform: translate(-50%) scale(5);
+    z-index: 2;
+    color: #A68A7A;
+    pointer-events: none;
+    font-family: 'BadBoys', sans-serif;
+    letter-spacing: 2px;
+}
+
+#Back{
+    position: absolute;
+    background: transparent;
+    border: none;
+    top: 93%;
+    left: 5%;
+    transform: translate(-50%) scale(3);
+    color: #A68A7A;
+    pointer-events: all;
+    font-family: 'Blasphemous_3', sans-serif;
+    transition: color 0.5 ease;
+}
+
+#Back:hover{
+    color: #B30000;
+}
+
+.GlowEffect::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scaleX(1.2); /* stretch horizontally */
+
+  width: 350px;
+  height: 25px;
+
+  background: radial-gradient(
+    ellipse,
+    rgba(90, 26, 10, 0.8) 10%,
+    rgba(90, 26, 10, 0.4) 5%,
+    transparent 50%
+  );
+
+  filter: blur(3px);
+  z-index: -1;
+}
+
+#_container {
+    position: relative;
+    left: 25%;
+    top: 25%;
+    display: grid;
+    grid-template-columns: repeat(3, 300px);
+    grid-template-rows: repeat(2, 285px);
+    gap: 10px;
+    height: 150%;
+    width: 150%;
+}
+
+.PlatBtn {
+    background: rgba(202, 47, 47, 0.047);
+    width: 100%;
+}
+#Background {
+    position: fixed;
+    top: 7%;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+}
+
+#Background_img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+}

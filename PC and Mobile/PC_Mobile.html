@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC and Mobile</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="orientation-overlay">
+        <div class="icon">📱🔄</div>
+        <h2 style="font-family: Arial, sans-serif; font-size: 1.2rem; color: #ff5d73;">PLEASE ROTATE DEVICE</h2>
+        <p style="margin-top: 10px; color: #ccc;">กรุณาหมุนโทรศัพท์ของคุณเป็นแนวนอนเพื่อเริ่มการเล่น</p>
+    </div>
+    <div id="gameCanvas">
+        <div class="all-container">
+            <div class="device-wrapper">
+                <img src="image/Text_pc.png" alt="Test_pc" class="device-text" id="Textpc">
+                <div class="device-card" id="card-keyboard">
+                    <div class="device-images">
+                        <img src="image/Outline.png" alt="Outline" class="Outline_1">
+                        <img src="image/Keyboard//0001.png" alt="Keyboard" id="Keyboard">
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="device-wrapper phone-wrapper">
+                <img src="image/Text_mobile.png" alt="Test_mobile" class="device-text" id="Textmobile">
+                <div class="device-card" id="card-phone">
+                    <div class="device-images">
+                        <img src="image/Outline.png" alt="Outline" class="Outline_2">
+                        <img src="image/Phone/0001.png" alt="Phone" id="Phone">
+                    </div>
+                </div>
+            </div>
+
+            <script type="module">
+
+                import { animateLoop } from "../_module/animate_utils.js";
+                import { playClick, createLoopingAudio } from "../_module/sound_manager.js";
+
+                const _Keyboard = document.getElementById("Keyboard");
+                const _Phone = document.getElementById("Phone");
+                const cardKeyboard = document.getElementById("card-keyboard");
+                const cardPhone = document.getElementById("card-phone");
+                let isAnimatingKeyboard = false;
+                let isAnimatingPhone = false;
+
+
+                const keyboardSfx = createLoopingAudio("../sfx/keyboard.mp3");
+                keyboardSfx.playbackRate = 1.9;
+                const mobileSfx = createLoopingAudio("../sfx/mobile.mp3");
+                mobileSfx.playbackRate = 0.75;
+
+                // const keyboardSfx = createLoopingAudio("../sfx/keyboard.mp3");
+                // const mobileSfx = createLoopingAudio("../sfx/mobile.mp3");
+
+                // Unblock audio on first click (browser policy)
+                document.addEventListener("click", () => {
+                    console.log("[PC_Mobile] Audio unblocked by user click");
+                    keyboardSfx.load();
+                    mobileSfx.load();
+                }, { once: true });
+
+                cardKeyboard.addEventListener("mouseenter", () => {
+                    console.log("[PC_Mobile] Keyboard hover - playing sound");
+                    keyboardSfx.play().catch(err => console.warn("[PC_Mobile] Keyboard sound blocked:", err));
+                    if (isAnimatingKeyboard) return;
+                    isAnimatingKeyboard = true;
+                    animateLoop("Keyboard", 55, 32.5, () => isAnimatingKeyboard);
+                });
+
+                cardKeyboard.addEventListener("mouseleave", () => {
+                    console.log("[PC_Mobile] Keyboard leave - stopping sound");
+                    keyboardSfx.pause();
+                    keyboardSfx.currentTime = 0;
+                    isAnimatingKeyboard = false;
+                    _Keyboard.src = _Keyboard.src.replace(/\/\d+\.png$/, "/0001.png");
+                });
+
+                cardKeyboard.addEventListener("click", () => {
+                    playClick();
+                    setTimeout(() => { window.location.href = "../Character_Selection/Char_Select.html"; }, 150);
+                });
+
+                cardPhone.addEventListener("mouseenter", () => {
+                    console.log("[PC_Mobile] Phone hover - playing sound");
+                    mobileSfx.play().catch(err => console.warn("[PC_Mobile] Phone sound blocked:", err));
+                    if (isAnimatingPhone) return;
+                    isAnimatingPhone = true;
+                    animateLoop("Phone", 150, 42.5, () => isAnimatingPhone);
+                });
+
+                cardPhone.addEventListener("mouseleave", () => {
+                    console.log("[PC_Mobile] Phone leave - stopping sound");
+                    mobileSfx.pause();
+                    mobileSfx.currentTime = 0;
+                    isAnimatingPhone = false;
+                    _Phone.src = _Phone.src.replace(/\/\d+\.png$/, "/0001.png");
+                });
+
+                cardPhone.addEventListener("click", () => {
+                    playClick();
+                    setTimeout(() => { window.location.href = "../Character_Selection/Char_Select.html?device=mobile"; }, 150);
+                });
+            </script>
+
+            <script>
+                function updateMenuScale() {
+                    const baseWidth = 1920; 
+                    const baseHeight = 1080;
+                    
+                    // Calculate scale to fit width or height (letterboxing if needed)
+                    const scaleX = window.innerWidth / baseWidth;
+                    const scaleY = window.innerHeight / baseHeight;
+                    const scale = Math.min(scaleX, scaleY);
+                    
+                    // Set scale variable to be used by CSS
+                    document.documentElement.style.setProperty('--scale', scale);
+                    
+                    // Lock orientation if possible
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(e => { /* Ignore on non-mobile or if no interaction */ });
+                    }
+                }
+                window.addEventListener('resize', updateMenuScale);
+                updateMenuScale();
+            </script>
+        </div>
+
+    </div>
+</body>
+
+</html>

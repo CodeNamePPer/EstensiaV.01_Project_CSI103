@@ -1,0 +1,3411 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vampire Survivors Clone - First Play</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Prompt:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            /* Good for 2D pixel art */
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            /* Let clicks pass through if needed */
+        }
+
+        .player-info {
+            position: absolute;
+            top: 2vmin;
+            left: 2vmin;
+            color: #fff;
+            text-shadow: 2px 2px 0px #000;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .player-info h2 {
+            font-family: 'Press Start 2P', cursive;
+            margin: 0 0 10px 0;
+            font-size: 2vmin;
+            color: #ffd700;
+        }
+
+        .player-info p {
+            margin: 0;
+            font-size: 1.5vmin;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1vmin;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1.5vmin;
+            border-radius: 4px;
+            font-size: 1.2vmin;
+            border: 1px solid #444;
+            margin-top: 10px;
+            min-width: 25vw;
+        }
+
+        .stats-grid div {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        /* Enemy testing UI */
+        #ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: rgba(26, 26, 26, 0.8);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            border-radius: 8px;
+            max-width: 90%;
+            pointer-events: auto;
+        }
+
+        .enemy-btn {
+            padding: 8px 12px;
+            background-color: #333;
+            color: white;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: 'Prompt', sans-serif;
+            font-size: 0.8rem;
+        }
+
+        .enemy-btn:hover {
+            filter: brightness(1.2);
+            transform: scale(1.05);
+        }
+
+        .enemy-btn.active {
+            border-color: white;
+            transform: scale(1.1);
+            z-index: 5;
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 20;
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 0 #8b0000;
+        }
+
+        /* Shop Panel Styles */
+        .buy-panel-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            /* Much higher than mobile controls (101) */
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .buy-panel-container.show {
+            display: flex;
+        }
+
+        .buy-panel-container .panel {
+            width: 1000px;
+            padding: 30px 40px 60px;
+            border: 6px solid #3a3f5a;
+            background: #151827;
+            box-shadow: 0 0 0 6px #0a0c14, 0 0 30px #000;
+        }
+
+        .buy-panel-container .title {
+            text-align: center;
+            font-size: 30px;
+            color: #ff5d73;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+        }
+
+        .buy-panel-container .cards {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .buy-panel-container .cards.lu-cards {
+            gap: 20px;
+        }
+
+        .buy-panel-container .card {
+            width: 280px;
+            height: 350px;
+            border: 4px solid #3a3f5a;
+            background: #20243a;
+            padding: 15px;
+            transition: 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .buy-panel-container .card:hover {
+            transform: translateY(-6px);
+            border-color: #ff5d73;
+        }
+
+        .buy-panel-container .icon {
+            width: 60px;
+            height: 60px;
+            image-rendering: pixelated;
+            flex-shrink: 0;
+            border: 3px solid #3a3f5a;
+            background: #11131f;
+            padding: 4px;
+            margin-top: 20px;
+            align-self: center;
+        }
+
+        .buy-panel-container .content h3 {
+            font-size: 15px;
+            line-height: 1.4;
+            color: #ff5d73;
+            margin-bottom: 10px;
+            text-align: left;
+            margin-left: 10px;
+            margin-top: 30px;
+        }
+
+        .buy-panel-container .content p {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #cfd3ff;
+            text-align: left;
+            margin-left: 10px;
+        }
+
+        .buy-panel-container .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .buy-panel-container button {
+            width: 150px;
+            padding: 12px;
+            border: 4px solid #3a3f5a;
+            background: #20243a;
+            color: #fff;
+            cursor: pointer;
+            font-size: 10px;
+            transition: 0.2s;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .buy-panel-container button:hover {
+            border-color: #ff5d73;
+            color: #ff5d73;
+        }
+
+        .buy-panel-container .message {
+            margin-top: 16px;
+            padding: 16px;
+            border: 4px solid #3a3f5a;
+            background: #171b2b;
+            color: #cfd3ff;
+            font-size: 12px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        @media screen and (max-height: 800px),
+        screen and (max-width: 1100px) {
+            .buy-panel-container .panel {
+                width: 95vw;
+                padding: 10px 15px 20px;
+                border-width: 3px;
+                max-height: 95vh;
+                overflow-y: auto;
+            }
+
+            .buy-panel-container .title {
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+
+            .buy-panel-container .cards {
+                margin-bottom: 10px;
+                gap: 5px;
+            }
+
+            .buy-panel-container .cards.lu-cards {
+                gap: 5px;
+            }
+
+            .buy-panel-container .card {
+                width: 32%;
+                height: 50vh;
+                min-height: 180px;
+                border-width: 2px;
+                padding: 5px;
+                gap: 5px;
+                justify-content: flex-start;
+            }
+
+            .buy-panel-container .icon {
+                width: 30px;
+                height: 30px;
+                margin-top: 5px;
+                border-width: 2px;
+            }
+
+            .buy-panel-container .content h3 {
+                font-size: 10px;
+                margin-top: 5px;
+                margin-bottom: 5px;
+                margin-left: 0;
+                text-align: center;
+            }
+
+            .buy-panel-container .content p {
+                font-size: 8px;
+                line-height: 1.2;
+                margin-left: 0;
+                text-align: center;
+            }
+
+            .buy-panel-container .buttons {
+                margin-top: 10px;
+            }
+
+            .buy-panel-container button {
+                width: 30%;
+                padding: 8px;
+                font-size: 8px;
+                border-width: 2px;
+            }
+
+            .buy-panel-container .message {
+                margin-top: 10px;
+                padding: 8px;
+                font-size: 9px;
+                min-height: 25px;
+                border-width: 2px;
+            }
+        }
+
+        .spectator-msg {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #ff5555;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 18px;
+            display: none;
+            z-index: 2000;
+            border: 2px solid #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            }
+        }
+
+        .xp-bar-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(58, 63, 90, 0.5);
+            border: 1px solid #3a3f5a;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            margin-top: 4px;
+        }
+
+        .xp-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #6eff5d, #00c853);
+            box-shadow: 0 0 8px rgba(110, 255, 93, 0.4);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Virtual Joystick Styles */
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .joystick-container {
+            position: absolute;
+            width: 15vmin;
+            /* Responsive size */
+            height: 15vmin;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: auto;
+            touch-action: none;
+            display: none;
+            transform: translate(-50%, -50%);
+        }
+
+        #joystick-area {
+            position: absolute;
+            bottom: 5vh;
+            left: 2vw;
+            width: 40vw;
+            /* Almost half of the screen width for touch catch */
+            height: 60vh;
+            background: transparent;
+            /* Invisible touch zone */
+            border: none;
+            border-radius: 12px;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        .joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6vmin;
+            height: 6vmin;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .dash-btn-container {
+            position: absolute;
+            bottom: 8vh;
+            right: 8vw;
+            width: 15vmin;
+            height: 15vmin;
+            background: rgba(255, 100, 100, 0.3);
+            border: 3px solid rgba(255, 100, 100, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            touch-action: none;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5vmin;
+            /* Scale font with screen */
+            box-shadow: 0 0 15px rgba(255, 100, 100, 0.2);
+            z-index: 101;
+        }
+
+        .dash-btn-container:active {
+            background: rgba(255, 100, 100, 0.6);
+            transform: scale(0.9);
+        }
+
+        .mobile-settings-btn {
+            position: absolute;
+            top: 2vh;
+            right: 2vw;
+            padding: 8px 12px;
+            background: rgba(50, 50, 50, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            pointer-events: auto;
+            touch-action: auto;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5vmin;
+            z-index: 101;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+        }
+
+        .mobile-settings-btn:active {
+            background: rgba(100, 100, 100, 0.9);
+            transform: scale(0.95);
+        }
+
+        /* Orientation Warning Overlay */
+        #orientation-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #111;
+            color: #fff;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            text-align: center;
+            padding: 20px;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        #orientation-overlay .icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+            animation: rotateIcon 2s infinite ease-in-out;
+        }
+
+        @keyframes rotateIcon {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(90deg);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        @media screen and (orientation: portrait) {
+            #orientation-overlay {
+                display: flex;
+            }
+        }
+
+        /* --- Settings Overlay Styles --- */
+        .settings-panel-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 5000;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            color: white;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        .settings-panel-container.show {
+            display: flex;
+        }
+
+        .settings-content {
+            width: 700px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #1a1e2e;
+            border: 4px solid #3a3f5a;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+        }
+
+        @media screen and (max-width: 800px),
+        screen and (max-height: 500px) {
+            .settings-content {
+                padding: 15px;
+            }
+
+            .settings-content h2 {
+                margin-bottom: 15px;
+                font-size: 18px;
+            }
+
+            .settings-row {
+                margin-bottom: 15px;
+            }
+
+            .controls-grid {
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .settings-actions {
+                margin-top: 20px;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .settings-actions button {
+                padding: 8px 15px;
+                font-size: 10px;
+            }
+        }
+
+        .settings-content h2 {
+            font-family: 'Press Start 2P', cursive;
+            color: #ff5d73;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .settings-row {
+            margin-bottom: 25px;
+        }
+
+        .settings-row label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+            font-size: 14px;
+        }
+
+        .settings-row input[type="range"] {
+            width: 100%;
+            accent-color: #ff5d73;
+            cursor: pointer;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            background: #111421;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-item span {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .control-item button {
+            background: #3a3f5a;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            min-width: 60px;
+        }
+
+        .control-item button:hover {
+            background: #ff5d73;
+        }
+
+        .control-item button.waiting {
+            background: #ffd700;
+            color: black;
+            animation: blink 1s infinite;
+        }
+
+        .settings-actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .settings-actions button {
+            padding: 12px 25px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            cursor: pointer;
+            border: 3px solid #3a3f5a;
+            border-radius: 4px;
+            background: #20243a;
+            color: white;
+        }
+
+        .settings-actions button:hover {
+            border-color: #6eff5d;
+            color: #6eff5d;
+        }
+
+        .settings-actions .quit-btn:hover {
+            border-color: #ff5d73;
+            color: #ff5d73;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="spectator-msg" class="spectator-msg">YOU DIED - SPECTATING</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <!-- <div id="ui">
+            <button class="enemy-btn"
+                style="background-color: #cc0000; color: #fff; border: 2px solid white; opacity: 0;"
+                onclick="enemies.forEach(e => { e.hp = 0; e.hitTimer = 1; }); bullets = []; aoeMarkers = []; aoeBlastEffects = [];">Kill
+                All</button>
+        </div> Select Enemy Bar -->
+
+        <div id="game-over">
+            <h1 style="color: red; font-size: 56px; margin-bottom: 20px; text-shadow: 0 0 10px red;">GAME OVER</h1>
+            <button class="enemy-btn" onclick="resetGame()"
+                style="font-size: 24px; padding: 15px 40px; background-color: #444; font-family: 'Press Start 2P', cursive;">
+                Restart</button>
+        </div>
+
+        <div id="loading">LOADING...</div>
+        <div class="player-info" style="display: none;" id="player-banner">
+            <h2 id="ui-name">Name</h2>
+            <p id="ui-class" style="display: block;">Class</p>
+            <div id="ui-stats" class="stats-grid">
+                <div>❤️ HP: <span id="ui-hp" class="sys-green">0</span></div>
+                <div>⚔️ ATK: <span id="ui-atk" class="sys-green">0</span></div>
+                <div>👟 SPD: <span id="ui-spd" class="sys-green">0</span></div>
+                <div>⏳ CD: <span id="ui-cd" class="sys-green">0</span></div>
+                <div>🎯 PRJ: <span id="ui-prj" class="sys-green">0</span></div>
+                <div>🛡️ ARM: <span id="ui-arm" class="sys-green">0</span></div>
+                <div style="grid-column: span 2; margin-top: 5px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                        <span>🌟 XP</span>
+                        <span id="ui-xp" class="sys-green">0/10</span>
+                    </div>
+                    <div class="xp-bar-container">
+                        <div id="ui-xp-bar" class="xp-bar-fill"></div>
+                    </div>
+                </div>
+                <div>🟡 COIN: <span id="ui-coin" class="sys-green">0</span></div>
+            </div>
+
+
+        </div>
+
+        <!-- Shop Panel -->
+        <div id="buy-panel-container" class="buy-panel-container">
+            <div class="panel">
+                <div class="title">Choose an Upgrade</div>
+                <div style="font-family: 'Press Start 2P', cursive; color: #cfd3ff; margin-bottom: 20px;">coins: <span
+                        id="coinCount" class="sys-green">0</span></div>
+                <div class="cards">
+                    <!-- Cards will be injected by buy.js -->
+                </div>
+                <div class="message" id="messageBox">Choose an upgrade and press Buy to reveal the result.</div>
+                <div class="buttons">
+                    <button id="refreshBtn">Refresh 20 coin</button>
+                    <button id="buyBtn">Buy 20 coin</button>
+                    <button id="closeBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Up Panel -->
+        <div id="levelup-panel-container" class="buy-panel-container">
+            <div class="panel">
+                <div class="title" style="color: #6eff5d;">Level Up!</div>
+                <div class="cards lu-cards">
+                    <!-- Level up cards injected by script -->
+                </div>
+                <div class="message" id="lu-messageBox">Choose your path!</div>
+                <div class="buttons" style="justify-content: center;">
+                    <button id="lu-selectBtn"
+                        style="font-size: 16px; padding: 15px 40px; width: 250px; border-color: #0a5a34;">Select</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel-container" class="settings-panel-container">
+            <div class="settings-content">
+                <h2>Settings</h2>
+
+                <div class="settings-row">
+                    <label>Sound Volume: <span id="st-vol-val">100</span></label>
+                    <input type="range" id="st-vol-input" min="0" max="100" value="100">
+                </div>
+
+                <div class="settings-row">
+                    <label>Sensitivity: <span id="st-sen-val">100</span></label>
+                    <input type="range" id="st-sen-input" min="20" max="200" value="100">
+                </div>
+
+                <div class="settings-row">
+                    <label>Controls</label>
+                    <div id="st-controls-grid" class="controls-grid">
+                        <!-- Injected -->
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button id="st-reset-btn">Reset Defaults</button>
+                    <button id="st-resume-btn">Resume (ESC)</button>
+                    <button id="st-quit-btn" class="quit-btn">Main Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="orientation-overlay">
+            <div class="icon">📱🔄</div>
+            <h2 style="font-family: 'Press Start 2P', cursive; font-size: 1.2rem; color: #ff5d73;">PLEASE ROTATE DEVICE
+            </h2>
+            <p style="margin-top: 10px; color: #ccc;">กรุณาหมุนโทรศัพท์ของคุณเป็นแนวนอนเพื่อเริ่มการเล่น</p>
+        </div>
+
+        <div id="mobile-controls">
+            <!-- Setting Button for Mobile -->
+            <div class="mobile-settings-btn" id="mobile-settings"
+                onclick="if(window.toggleSettings) window.toggleSettings();">⚙️ SETTINGS</div>
+            <div id="joystick-area">
+                <div class="joystick-container" id="joystick-base">
+                    <div class="joystick-knob" id="joystick-knob"></div>
+                </div>
+            </div>
+            <div class="dash-btn-container" id="mobile-dash">DASH</div>
+        </div>
+
+        <script src="classPlayer01.js"></script>
+        <script src="levels.js"></script>
+        <script src="Logicgame.js"></script>
+        <script src="enemyandboss.js"></script>
+        <script src="aim.js"></script>
+        <script src="buy.js"></script>
+        <!-- PeerJS and Network -->
+        <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+        <script src="Network.js"></script>
+        <script type="module">
+            import { getSetting, saveSetting, getDefaults } from './_module/settings_manager.js';
+            import { playClick } from './_module/sound_manager.js';
+
+            // --- 1. GAME SETUP & URL PARSING ---
+            let animationId;
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const loadingText = document.getElementById('loading');
+            const playerBanner = document.getElementById('player-banner');
+
+            // --- Game Objects (Top-level for module scope) ---
+            let player;
+            let player2 = {
+                active: false,
+                x: -1000, y: -1000,
+                hp: 1, maxHp: 1,
+                direction: 'idle',
+                flipX: false,
+                frameIndex: 0,
+                name: 'Guest',
+                charClass: 'นักดาบ',
+                isDead: false,
+                radius: 20
+            };
+            let enemies = [];
+            let bullets = [];
+            let aoeMarkers = [];
+            let aoeBlastEffects = [];
+            let projectiles = [];
+            const camera = { x: 0, y: 0 };
+            const images = {};
+            let mapPattern;
+
+            // --- Settings State ---
+            let isSettingsOpen = false;
+            let currentControls = getSetting('controls');
+            let bindingKey = null;
+
+            function applyGlobalVolume() {
+                const vol = Number(getSetting('soundVolume')) / 100;
+                const clamped = Math.max(0, Math.min(1, vol));
+
+                // Update registered sounds
+                if (window.allGameSounds) {
+                    window.allGameSounds.forEach(s => {
+                        if (s) s.volume = clamped;
+                    });
+                }
+
+                // Expose for handle-on-the-fly sounds
+                window.currentVolume = clamped;
+            }
+
+            function initSettingsUI() {
+                const volInput = document.getElementById('st-vol-input');
+                const volVal = document.getElementById('st-vol-val');
+                const senInput = document.getElementById('st-sen-input');
+                const senVal = document.getElementById('st-sen-val');
+
+                const savedVol = getSetting('soundVolume');
+                const savedSen = getSetting('sensitivity');
+
+                volInput.value = savedVol;
+                volVal.innerText = savedVol;
+                senInput.value = savedSen;
+                senVal.innerText = savedSen;
+
+                // Initial apply
+                applyGlobalVolume();
+
+                volInput.addEventListener('input', () => {
+                    const val = Number(volInput.value);
+                    volVal.innerText = val;
+                    saveSetting('soundVolume', val);
+                    applyGlobalVolume();
+                });
+
+                senInput.addEventListener('input', () => {
+                    senVal.innerText = senInput.value;
+                    saveSetting('sensitivity', Number(senInput.value));
+                });
+
+                renderControlsGrid();
+
+                document.getElementById('st-reset-btn').onclick = () => {
+                    playClick();
+                    const defaults = getDefaults();
+                    saveSetting('soundVolume', defaults.soundVolume);
+                    saveSetting('sensitivity', defaults.sensitivity);
+                    saveSetting('controls', defaults.controls);
+                    currentControls = defaults.controls;
+                    initSettingsUI(); // Refresh
+                };
+
+                document.getElementById('st-resume-btn').onclick = () => {
+                    playClick();
+                    toggleSettings();
+                };
+
+                document.getElementById('st-quit-btn').onclick = () => {
+                    playClick();
+                    window.location.href = 'index.html';
+                };
+            }
+
+            function renderControlsGrid() {
+                const grid = document.getElementById('st-controls-grid');
+                grid.innerHTML = '';
+                for (const action in currentControls) {
+                    const item = document.createElement('div');
+                    item.className = 'control-item';
+                    item.innerHTML = `
+                        <span>${action}</span>
+                        <button id="st-btn-${action}">${currentControls[action]}</button>
+                    `;
+                    const btn = item.querySelector('button');
+                    btn.onclick = () => {
+                        playClick();
+                        bindingKey = action;
+                        btn.innerText = '???';
+                        btn.classList.add('waiting');
+                    };
+                    grid.appendChild(item);
+                }
+            }
+
+            function toggleSettings() {
+                isSettingsOpen = !isSettingsOpen;
+                const container = document.getElementById('settings-panel-container');
+                const mobCoords = document.getElementById('mobile-controls');
+                if (isSettingsOpen) {
+                    container.classList.add('show');
+                    if (mobCoords) mobCoords.style.display = 'none';
+                    initSettingsUI();
+                    window.localPaused = true;
+                    if (netMode === 'host') network.sendData(JSON.stringify({ type: 'pauseSync', paused: true }));
+                } else {
+                    container.classList.remove('show');
+                    if (mobCoords && isMobile) mobCoords.style.display = 'block';
+                    window.localPaused = false;
+                    if (netMode === 'host') network.sendData(JSON.stringify({ type: 'pauseSync', paused: false }));
+                }
+            }
+
+            // Expose to window for global access
+            window.toggleSettings = toggleSettings;
+
+            // --- Key Listener for Settings ---
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (bindingKey) {
+                        bindingKey = null;
+                        renderControlsGrid();
+                        return;
+                    }
+                    toggleSettings();
+                    return;
+                }
+
+                if (bindingKey) {
+                    let newKey = e.key.toUpperCase();
+                    if (newKey === ' ') newKey = 'SPC';
+                    currentControls[bindingKey] = newKey;
+                    saveSetting('controls', currentControls);
+                    bindingKey = null;
+                    renderControlsGrid();
+                    e.preventDefault();
+                }
+            });
+
+            // --- End Settings ---
+
+            AimSystem.init(canvas);
+
+            // Handle resizing
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                // Disable smoothing for crisp pixel look
+                ctx.imageSmoothingEnabled = false;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Get params
+            const urlParams = new URLSearchParams(window.location.search);
+            const charName = urlParams.get('name') || 'Unknown';
+            const charClass = urlParams.get('class') || 'นักดาบ'; // Default to นักดาบ
+            const coinFromShop = urlParams.get('coin') ? parseInt(urlParams.get('coin'), 10) : null;
+
+            const netMode = urlParams.get('mode');
+            window.netMode = netMode; // Expose globally for other scripts
+            const roomId = urlParams.get('room');
+            const isMobile = urlParams.get('device') === 'mobile';
+
+            // Hide default OS cursor on canvas for PC players
+            if (!isMobile) canvas.style.cursor = 'none';
+
+            function getMobileNearestEnemy(px, py, maxRange = 400) {
+                let nearest = null;
+                let minDist = maxRange;
+                if (typeof enemies !== 'undefined') {
+                    for (let i = 0; i < enemies.length; i++) {
+                        const e = enemies[i];
+                        if (!e.dead && e.spawnTimer <= 0) {
+                            const d = getDist(px, py, e.x, e.y);
+                            if (d < minDist) {
+                                minDist = d;
+                                nearest = e;
+                            }
+                        }
+                    }
+                }
+                return nearest;
+            }
+
+            if (isMobile) {
+                document.getElementById('mobile-controls').style.display = 'block';
+
+                // Override aiming globally for mobile
+                const originalGetAim = AimSystem.getAimDirection.bind(AimSystem);
+                AimSystem.getAimDirection = function (px, py, cx, cy) {
+                    const wConfig = getWeaponConfig(playerData.weapon);
+                    const lockRange = wConfig.maxTargetRange || 400;
+                    const nearestAgent = getMobileNearestEnemy(px, py, lockRange);
+                    if (nearestAgent) {
+                        const dx = nearestAgent.x - px;
+                        const dy = nearestAgent.y - py;
+                        const len = Math.sqrt(dx * dx + dy * dy);
+                        if (len > 0) return { x: dx / len, y: dy / len };
+                    }
+                    // Fallback
+                    if (typeof player !== 'undefined') {
+                        if (player.joystick && player.joystick.active) {
+                            const jlen = Math.sqrt(player.joystick.dx * player.joystick.dx + player.joystick.dy * player.joystick.dy);
+                            if (jlen > 0) return { x: player.joystick.dx / jlen, y: player.joystick.dy / jlen };
+                        }
+                        return { x: player.flipX ? -1 : 1, y: 0 };
+                    }
+                    return { x: 1, y: 0 };
+                };
+            }
+            // Delayed initialization to prevent PeerJS "ID Taken" error
+            if (netMode && roomId) {
+                console.log(`[Multiplayer] Preparing ${netMode} mode for room ${roomId}...`);
+                setTimeout(() => {
+                    try {
+                        if (netMode === 'host') {
+                            network.initHost(roomId);
+                        } else if (netMode === 'join') {
+                            network.initJoin(roomId);
+                        }
+                    } catch (e) {
+                        console.error("[Multiplayer] PeerJS Init Error:", e);
+                    }
+                }, 100);
+            }
+
+            network.onDataReceived = (data) => {
+                try {
+                    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+
+                    if (parsed.type === 'playerUpdate') {
+                        player2.active = true;
+                        // Map shorthand swing variables back to full names
+                        if (parsed.swT !== undefined) {
+                            player2.isSwinging = parsed.isSwinging;
+                            player2.swingTimer = parsed.swT;
+                            player2.swingDuration = parsed.swD;
+                            player2.swingBaseAngle = parsed.swB;
+                            player2.swingSign = parsed.swS;
+                        }
+                        Object.assign(player2, parsed);
+                        if (player.isDead && player2.isDead) {
+                            triggerGameOver();
+                        }
+                    }
+                    else if (parsed.type === 'enemySync') {
+                        // Guest receives authoritative state from Host
+                        if (netMode === 'join') {
+                            syncEnemiesFromHost(parsed.enemies);
+                            if (parsed.wave) {
+                                // Synchronize wave manager state directly from Host
+                                Object.assign(waveManager, {
+                                    waveTimer: parsed.wave.timer,
+                                    currentWave: parsed.wave.num,
+                                    isWaveActive: parsed.wave.active,
+                                    hasSpawned: parsed.wave.spawned,
+                                    countdownTimer: parsed.wave.cd,
+                                    spawnedCount: parsed.wave.sCount,
+                                    enemiesInWave: parsed.wave.total
+                                });
+                            }
+                        }
+                    }
+                    else if (parsed.type === 'enemyHit') {
+                        // Host receives damage report from Guest
+                        if (netMode === 'host') {
+                            handleEnemyHit(parsed.enemyId, parsed.damage, parsed.kx, parsed.ky);
+                        }
+                    }
+                    else if (parsed.type === 'readyStatus') {
+                        remoteReady = parsed.ready;
+                        checkWaveStart();
+                    }
+                    else if (parsed.type === 'attackSync') {
+                        // Receive attack from partner
+                        const p2Config = getWeaponConfig(parsed.weapon);
+                        projectiles.push({
+                            x: parsed.x, y: parsed.y,
+                            vx: parsed.vx, vy: parsed.vy,
+                            lifetime: parsed.life,
+                            config: p2Config,
+                            damage: 0, // Visual only for sync to prevent double damage
+                            isMelee: parsed.isMelee,
+                            dx: parsed.dx, dy: parsed.dy,
+                            offsetX: parsed.ox, offsetY: parsed.oy,
+                            weapon: parsed.weapon,
+                            remote: true
+                        });
+                    }
+                    else if (parsed.type === 'playerAoeAttack') {
+                        // Receive AOE attack from partner
+                        aoeMarkers.push({
+                            x: parsed.x,
+                            y: parsed.y,
+                            radius: parsed.radius,
+                            timer: 0,
+                            maxTimer: parsed.maxTimer,
+                            owner: 'player',
+                            sourceX: parsed.sourceX,
+                            sourceY: parsed.sourceY,
+                            damage: 0
+                        });
+                    }
+                    else if (parsed.type === 'statSync') {
+                        // Guest syncs shared progress from Host
+                        if (netMode === 'join') {
+                            // If level increased, trigger the local level up screen for Guest
+                            if (parsed.level > gameLogic.level) {
+                                // Catch up level and trigger localized choice
+                                while (gameLogic.level < parsed.level) {
+                                    gameLogic.doLevelUp();
+                                }
+                            }
+                            gameLogic.xp = parsed.xp;
+                            gameLogic.maxXP = parsed.maxXP;
+                            gameLogic.level = parsed.level;
+                            // ไม่ซิงค์เหรียญจาก Host ให้แชร์แยกกัน
+                            updateUIStats();
+                        }
+                    }
+                    else if (parsed.type === 'shopOpen') {
+                        // Guest opens shop when Host signals wave complete
+                        if (netMode === 'join') {
+                            buy();
+                        }
+                    }
+                    else if (parsed.type === 'gemSync') {
+                        // Guest syncs positions of gems from Host
+                        if (netMode === 'join') {
+                            levelManager.levels = parsed.gems.map(g => new Level(g.x, g.y, g.t, g.id));
+                        }
+                    }
+                    else if (parsed.type === 'gemCollected') {
+                        // Someone collected a gem - remove it everywhere
+                        const gem = levelManager.levels.find(l => l.id === parsed.id);
+                        if (gem && !gem.collected) {
+                            gem.collected = true;
+                            // Add XP locally to keep levels in sync. 
+                            // The !gem.collected check prevents double-counting if both players hit it at once.
+                            gameLogic.addXP(gem.xpValue);
+                        }
+                    }
+                    else if (parsed.type === 'enemyAttackSync') {
+                        // Guest receives enemy projectiles from Host (visual only, no damage)
+                        if (netMode === 'join') {
+                            const b = new Bullet(
+                                parsed.x, parsed.y, parsed.angle,
+                                parsed.speed, parsed.radius, parsed.color,
+                                0, parsed.owner
+                            );
+                            b.remote = true; // Flag: Host is authoritative for damage
+                            bullets.push(b);
+                        }
+                    }
+                    else if (parsed.type === 'enemyAoeSync') {
+                        // Guest receives enemy AOE markers from Host
+                        if (netMode === 'join') {
+                            aoeMarkers.push({
+                                x: parsed.x, y: parsed.y, radius: parsed.radius,
+                                timer: 0, maxTimer: parsed.maxTimer,
+                                owner: 'enemy'
+                            });
+                        }
+                    }
+                    else if (parsed.type === 'remoteDamage') {
+                        // Host tells Guest to take damage (from bullet/AOE hitting Guest)
+                        if (netMode === 'join') {
+                            damagePlayer(parsed.amount || 1);
+                        }
+                    }
+                    else if (parsed.type === 'pauseSync') {
+                        // Synchronize pause state for Level up and Shop
+                        window.remotePaused = parsed.paused;
+                    }
+                } catch (e) { console.error("[Network] Message Error:", e); }
+            };
+
+            function onShopSessionEnded() {
+                // Show mobile controls back
+                const mc = document.getElementById('mobile-controls');
+                if (mc && isMobile) mc.style.display = 'block';
+
+                if (netMode === 'host' || !netMode) {
+                    if (enemies.length === 0 && waveManager.isWaveActive === false && !waveManager.isShopOpen) {
+                        waveManager.startWave(waveManager.currentWave);
+                    }
+                }
+            }
+
+            // Global expose for buy.js
+            window.onShopSessionEnded = onShopSessionEnded;
+
+            function syncEnemiesFromHost(hostEnemies) {
+                // 1. Mark existing enemies not in the host list as dead
+                const hostIds = new Set(hostEnemies.map(he => he.id));
+                enemies.forEach(e => {
+                    if (!hostIds.has(e.id)) e.dead = true;
+                });
+
+                // 2. Update existing or create new
+                hostEnemies.forEach(he => {
+                    let localE = enemies.find(e => e.id === he.id);
+                    if (localE) {
+                        localE.x = he.x;
+                        localE.y = he.y;
+                        localE.hp = he.hp;
+                        localE.maxHp = he.maxHp;
+                        localE.type = he.t;
+                        localE.dead = false; // revive if needed
+
+                        // Sync state for animations
+                        if (he.st !== undefined) {
+                            if (!localE.state) localE.state = {};
+                            localE.state.mode = he.st;
+                            localE.state.angle = he.a;
+                            localE.state.aiming = he.am;
+                            localE.state.z = he.z;
+                        }
+                    } else {
+                        // Create matching enemy/boss instance
+                        let newE;
+                        if (he.t >= 10 && he.t <= 140) {
+                            newE = new Boss(he.x, he.y, he.t, he.id);
+                        } else {
+                            newE = new Enemy(he.x, he.y, he.t, he.id);
+                        }
+                        newE.hp = he.hp;
+                        newE.maxHp = he.maxHp;
+                        newE.spawnTimer = 0; // Guest doesn't need spawn animation
+
+                        if (he.st !== undefined) {
+                            if (!newE.state) newE.state = {};
+                            newE.state.mode = he.st;
+                            newE.state.angle = he.a;
+                            newE.state.aiming = he.am;
+                            newE.state.z = he.z;
+                        }
+                        enemies.push(newE);
+                    }
+                });
+            }
+
+            function handleEnemyHit(id, damage, kx = 0, ky = 0) {
+                const target = enemies.find(e => e.id === id);
+                if (target && !target.dead) {
+                    target.hp -= damage;
+                    totalDamage += damage; // Track total damage
+                    target.hitTimer = 10;
+                    if (kx !== 0 || ky !== 0) {
+                        const strength = 8;
+                        target.kbX = kx * strength;
+                        target.kbY = ky * strength;
+                    }
+                }
+            }
+
+            const playerData = new Player(charName, charClass);
+
+            console.log('Initializing game for:', charName, 'Class:', charClass);
+            const weaponName = (playerData.weapon || 'Fist').replace('\n ', '');
+
+            document.getElementById('ui-name').innerText = playerData.name;
+            document.getElementById('ui-class').innerText = 'Lv 1 - ' + charClass + ' (' + weaponName + ')';
+            document.getElementById('ui-hp').innerText = playerData.hp;
+            document.getElementById('ui-atk').innerText = playerData.atk;
+            document.getElementById('ui-spd').innerText = playerData.spd;
+            document.getElementById('ui-cd').innerText = playerData.cd;
+            document.getElementById('ui-prj').innerText = playerData.projectile;
+            document.getElementById('ui-arm').innerText = playerData.armored;
+            document.getElementById('ui-xp').innerText = '0/10' // XP/MaxXP
+            document.getElementById('ui-coin').innerText = playerData.coin;
+
+            // --- LEVEL SYSTEM INITIALIZATION ---
+            const gameLogic = new Logicgame();
+            window.gameLogic = gameLogic;
+            const levelManager = gameLogic.levelManager;
+            const waveManager = new WaveManager();
+            window.waveManager = waveManager;
+            waveManager.onWaveComplete = () => {
+                if (player.isDead) {
+                    // Dead players don't shop. 
+                    // If Host is dead, auto-start next wave after a delay
+                    if (netMode === 'host' || !netMode) {
+                        setTimeout(() => {
+                            if (enemies.length === 0 && !waveManager.isWaveActive) {
+                                waveManager.isShopOpen = false;
+                                waveManager.startWave(waveManager.currentWave);
+                            }
+                        }, 2000);
+                    }
+                    return;
+                }
+
+                // If Host, notify Guest to open shop too
+                if (netMode === 'host') {
+                    network.sendData(JSON.stringify({ type: 'shopOpen' }));
+                }
+
+                buy();
+            };
+
+            // Restore game state from sessionStorage if returning from shop
+            const savedGameState = sessionStorage.getItem('gameState');
+            if (savedGameState) {
+                try {
+                    const state = JSON.parse(savedGameState);
+                    gameLogic.coin = state.coin || 0;
+                    gameLogic.xp = state.xp || 0;
+                    gameLogic.level = state.level || 1;
+                    gameLogic.maxXP = state.maxXP || 10;
+                    sessionStorage.removeItem('gameState'); // Clear after use
+                }
+                catch (e) {
+                    console.warn('Failed to restore game state:', e);
+                }
+            } else if (coinFromShop !== null && !Number.isNaN(coinFromShop)) {
+                // Fallback: restore coins from URL parameter if no sessionStorage
+                gameLogic.coin = coinFromShop;
+            }
+
+            // --- ENEMY STATE & HELPERS ---
+            let currentEnemyType = 1;
+            let frameCount = 0;
+            let screenShake = 0;
+            let totalDamage = 0; // Tracks total damage dealt to enemies
+
+            function triggerGameOver() {
+                const coins = gameLogic.coin;
+                const wave = waveManager.currentWave;
+                const lv = gameLogic.level;
+                const dmg = Math.round(totalDamage);
+
+                // Add a small delay to ensure network sync finishes
+                setTimeout(() => {
+                    window.location.href = `gameover.html?coin=${coins}&wave=${wave}&lv=${lv}&dmg=${dmg}`;
+                }, 1000);
+            }
+
+            function damagePlayer(amount = 1) {
+                if (player.hitTimer > 0 || player.isDead) return;
+                player.hp -= amount;
+                player.hitTimer = 60;
+                if (player.hp <= 0) {
+                    player.hp = 0;
+                    player.isDead = true;
+
+                    // Notify other players
+                    if (netMode) network.sendData(JSON.stringify({ type: 'playerUpdate', hp: 0, isDead: true }));
+
+                    if (netMode && player2.active && !player2.isDead) {
+                        document.getElementById('spectator-msg').style.display = 'block';
+                    } else {
+                        // Single player OR both/all players dead
+                        triggerGameOver();
+                    }
+                }
+                // อัพเดต HP ใน UI
+                updateUIStats();
+            }
+
+            // Authoritative damage handler for multiplayer
+            function dealDamageToTarget(target, amount = 1) {
+                if (!target || target.isDead) return;
+
+                if (target === player) {
+                    // Local player damage
+                    damagePlayer(amount);
+                } else if (target === player2 && netMode === 'host') {
+                    // Host tells Guest to take damage
+                    // We don't apply it locally to player2.hp because guest will report back or we sync via remoteDamage
+                    network.sendData(JSON.stringify({ type: 'remoteDamage', amount: amount }));
+                }
+            }
+            gameLogic.onLevelUp = (newLevel) => {
+                const bonus = playerData.levelUpBonus;
+                if (bonus) {
+                    if (bonus.atk) playerData.atk += bonus.atk;
+                    if (bonus.hp) { playerData.hp += bonus.hp; player.maxHp += bonus.hp; player.hp += bonus.hp; }
+                    if (bonus.cd) playerData.cd += bonus.cd;
+                    if (bonus.armor) playerData.armored += bonus.armor;
+                }
+
+                updateUIStats();
+                console.log(`Lv ${newLevel} | ATK:${playerData.atk} HP:${playerData.hp} CD:${playerData.cd}`);
+
+                if (player.isDead) return;
+
+                // Sync level immediately so Guest opens menu simultaneously
+                if (typeof network !== 'undefined' && typeof netMode !== 'undefined' && netMode === 'host') {
+                    network.sendData(JSON.stringify({
+                        type: 'statSync',
+                        xp: gameLogic.xp,
+                        maxXP: gameLogic.maxXP,
+                        level: gameLogic.level
+                    }));
+                }
+
+                // Hide mobile controls to prevent overlapping
+                const mc = document.getElementById('mobile-controls');
+                if (mc) mc.style.display = 'none';
+
+                const panel = document.getElementById('levelup-panel-container');
+                if (panel) {
+                    panel.classList.add('show');
+                }
+                if (window.levelUpDeck) {
+                    window.levelUpDeck.renderCards();
+                }
+            };
+            gameLogic.onXPChanged = updateUIStats; // Set callback to update UI when XP changes
+            gameLogic.onCoinChanged = updateUIStats; // Set callback to update UI when coin changes
+
+            // Global expose for compatibility
+            function syncGlobals() {
+                window.player = player;
+                window.enemies = enemies;
+                window.bullets = bullets;
+                window.aoeMarkers = aoeMarkers;
+                window.aoeBlastEffects = aoeBlastEffects;
+                window.projectiles = projectiles;
+                window.camera = camera;
+                window.player2 = player2;
+                window.images = images;
+
+                // Sync primitives (Two-way for screenShake)
+                if (window.screenShake > screenShake) screenShake = window.screenShake;
+                window.screenShake = screenShake;
+
+                window.frameCount = frameCount;
+                window.totalDamage = totalDamage;
+            }
+
+            window.updateUIStats = updateUIStats;
+            window.damagePlayer = damagePlayer;
+            window.dealDamageToTarget = dealDamageToTarget;
+            window.triggerGameOver = triggerGameOver;
+            window.spawnEnemy = spawnEnemy;
+            window.setTargetEnemy = setTargetEnemy;
+            window.resetGame = resetGame;
+            window.getAngle = getAngle;
+            window.getDist = getDist;
+            window.pbDistSquare = pbDistSquare;
+            window.syncGlobals = syncGlobals; // Expose for debugging if needed
+
+            // Initial Sync
+            syncGlobals();
+
+            function resetGame() {
+                playerData.resetStats();
+                player.hp = player.maxHp;
+                player.maxHp = playerData.hp;
+                player.isDead = false;
+                player.hitTimer = 0;
+                document.getElementById('game-over').style.display = 'none';
+                document.getElementById('spectator-msg').style.display = 'none';
+                document.getElementById('ui-hp').innerText = player.hp;
+
+                // Reset level system but keep coins
+                const savedCoin = gameLogic.coin;
+                gameLogic.reset();
+                gameLogic.coin = savedCoin; // Restore coins
+
+                document.getElementById('ui-xp').innerText = '0/' + gameLogic.maxXP;
+                const levelDisplay = document.getElementById('ui-class');
+                if (levelDisplay) {
+                    const weaponName = (playerData.weapon || 'Fist').replace('\n ', '');
+                    levelDisplay.innerText = 'Lv ' + gameLogic.level + ' - ' + charClass + ' (' + weaponName + ')';
+                }
+
+                enemies.length = 0; bullets.length = 0; aoeMarkers.length = 0; aoeBlastEffects.length = 0;
+
+                // Reset Wave System
+                waveManager.startWave(1);
+
+                // Spawn initial level drops
+                gameLogic.player = player; // ต้องตั้งค่า player ก่อน spawn
+                levelManager.spawnLevelWave(8);
+                console.log('Game reset. Levels spawned:', levelManager.getCount());
+            }
+
+            function getAngle(x1, y1, x2, y2) { return Math.atan2(y2 - y1, x2 - x1); }
+            function getDist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+            function pbDistSquare(px, py, x1, y1, x2, y2) {
+                let l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+                if (l2 === 0) return (px - x1) ** 2 + (py - y1) ** 2;
+                let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                return (px - (x1 + t * (x2 - x1))) ** 2 + (py - (y1 + t * (y2 - y1))) ** 2;
+            }
+
+            // Init UI Buttons
+            setTimeout(() => {
+                const uiContainer = document.getElementById('ui');
+                if (uiContainer && typeof enemyDefinitions !== 'undefined') {
+                    enemyDefinitions.forEach(def => {
+                        const btn = document.createElement('button');
+                        btn.className = 'enemy-btn';
+                        btn.textContent = def.name;
+                        btn.style.backgroundColor = def.color;
+                        btn.style.color = '#fff';
+                        if (def.id === 1) btn.classList.add('active');
+                        btn.onclick = () => {
+                            document.querySelectorAll('.enemy-btn').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            setTargetEnemy(def.id);
+                        };
+                        uiContainer.appendChild(btn);
+                    });
+                }
+            }, 500); // Wait a bit for enemyandboss.js to fully initialize global vars
+
+            function spawnEnemy(x, y, id) {
+                if (id >= 10) enemies.push(new Boss(x, y, id));
+                else enemies.push(new Enemy(x, y, id));
+            }
+
+            function setTargetEnemy(id) {
+                currentEnemyType = id;
+                if (images.map) spawnEnemy(player.x + (Math.random() * 400 - 200), player.y - 300, currentEnemyType);
+            }
+
+            class Bullet {
+                constructor(x, y, angle, speed, radius, color, curve = 0, owner = 0, homingTarget = null, lifetime = Infinity) {
+                    this.x = x; this.y = y; this.angle = angle;
+                    this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+                    this.speed = speed; this.radius = radius; this.color = color;
+                    this.active = true; this.curve = curve; this.owner = owner;
+                    this.homingTarget = homingTarget; this.lifetime = lifetime;
+                }
+                update() {
+                    if (this.homingTarget && !this.homingTarget.isDead) {
+                        let angleToTarget = getAngle(this.x, this.y, this.homingTarget.x, this.homingTarget.y);
+                        let diff = angleToTarget - this.angle;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        this.angle += Math.sign(diff) * Math.min(Math.abs(diff), 0.04);
+                        this.vx = Math.cos(this.angle) * this.speed;
+                        this.vy = Math.sin(this.angle) * this.speed;
+                    } else if (this.curve !== 0) {
+                        this.angle += this.curve;
+                        this.vx = Math.cos(this.angle) * this.speed;
+                        this.vy = Math.sin(this.angle) * this.speed;
+                    }
+                    this.x += this.vx; this.y += this.vy;
+                    if (this.lifetime !== Infinity) { this.lifetime--; if (this.lifetime <= 0) this.active = false; }
+                }
+                draw(ctx) {
+                    if (this.owner === 4 && typeof arrowImg !== 'undefined' && arrowImg && arrowImg.complete) {
+                        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle - Math.PI / 70);
+                        ctx.drawImage(arrowImg, -25, -150, 40, 300); ctx.restore();
+                    } else if (this.owner === 11) {
+                        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+                        ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(15, 0);
+                        ctx.strokeStyle = this.color; ctx.lineWidth = this.radius * 2; ctx.lineCap = "round"; ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+                        ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = this.radius; ctx.lineCap = "round"; ctx.stroke();
+                        ctx.restore();
+                    } else {
+                        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = this.color; ctx.fill();
+                        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                        ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.fill();
+                    }
+                }
+            }
+            window.Bullet = Bullet;
+
+            // --- 2. ASSET LOADING ---
+            const CHARACTERS = [
+                {
+                    name: 'นักดาบ',
+                    side: ['ตัวละคร project/char1/side1.png', 'ตัวละคร project/char1/side2.png', 'ตัวละคร project/char1/side3.png', 'ตัวละคร project/char1/side4.png'],
+                    up: ['ตัวละคร project/char1/up1.png', 'ตัวละคร project/char1/up2.png', 'ตัวละคร project/char1/up3.png', 'ตัวละคร project/char1/up4.png'],
+                    idle: ['ตัวละคร project/char1/stand.png'],
+                },
+                {
+                    name: 'นักเวท',
+                    side: ['ตัวละคร project/Mage/side1.png', 'ตัวละคร project/Mage/side2.png', 'ตัวละคร project/Mage/side3.png', 'ตัวละคร project/Mage/side4.png'],
+                    up: ['ตัวละคร project/Mage/up1.png', 'ตัวละคร project/Mage/up2.png', 'ตัวละคร project/Mage/up3.png', 'ตัวละคร project/Mage/up4.png'],
+                    idle: ['ตัวละคร project/Mage/stand.png'],
+                },
+                {
+                    name: 'นักธนู',
+                    side: ['ตัวละคร project/archer/side1.png', 'ตัวละคร project/archer/side2.png', 'ตัวละคร project/archer/side3.png', 'ตัวละคร project/archer/side4.png'],
+                    up: ['ตัวละคร project/archer/up1.png', 'ตัวละคร project/archer/up2.png', 'ตัวละคร project/archer/up3.png', 'ตัวละคร project/archer/up4.png'],
+                    idle: ['ตัวละคร project/archer/stand.png'],
+                },
+                {
+                    name: 'มือปืน',
+                    side: ['ตัวละคร project/Gunner/side1.png', 'ตัวละคร project/gunner/side2.png', 'ตัวละคร project/gunner/side3.png', 'ตัวละคร project/gunner/side4.png'],
+                    up: ['ตัวละคร project/Gunner/up1.png', 'ตัวละคร project/gunner/up2.png', 'ตัวละคร project/gunner/up3.png', 'ตัวละคร project/gunner/up4.png'],
+                    idle: ['ตัวละคร project/Gunner/stand.png'],
+                },
+            ];
+
+            let currentCharIndex = CHARACTERS.findIndex(ch => ch.name === charClass);
+            if (currentCharIndex === -1) currentCharIndex = 0;
+
+            function getCharAnim() { return CHARACTERS[currentCharIndex]; }
+
+            const animFrameCache = {};
+            function getFrameImage(src) {
+                if (!animFrameCache[src]) {
+                    const img = new Image();
+                    img.src = src;
+                    animFrameCache[src] = img;
+                }
+                return animFrameCache[src];
+            }
+
+            CHARACTERS.forEach(ch => {
+                [...ch.side, ...ch.up, ...ch.idle].forEach(src => getFrameImage(src));
+            });
+
+            let assetsLoaded = 0;
+            let totalAssets = 9; // Map + Sword + Bow + Arrow + MagicCircle + Staff + WeaponGiant + StaffPlayer + Gun
+
+            function onAssetLoaded() {
+                assetsLoaded++;
+                if (assetsLoaded === totalAssets) {
+                    startGame();
+                }
+            }
+
+            function loadImage(key, path) {
+                const img = new Image();
+                img.onload = onAssetLoaded;
+                img.onerror = onAssetLoaded;
+                img.src = path;
+                images[key] = img;
+                return img;
+            }
+
+            // Map load
+            loadImage('map', 'Map1/Map1.png');
+
+            // Wait for images that are already defined in enemyandboss.js
+            function attachToAsset(img) {
+                if (img.complete) {
+                    onAssetLoaded();
+                } else {
+                    img.onload = onAssetLoaded;
+                    img.onerror = onAssetLoaded;
+                }
+            }
+
+            setTimeout(() => {
+                if (typeof swordImg !== 'undefined') attachToAsset(swordImg); else onAssetLoaded();
+                if (typeof bowImg !== 'undefined') attachToAsset(bowImg); else onAssetLoaded();
+                if (typeof arrowImg !== 'undefined') attachToAsset(arrowImg); else onAssetLoaded();
+                if (typeof magicCircleImg !== 'undefined') attachToAsset(magicCircleImg); else onAssetLoaded();
+                if (typeof staffImg !== 'undefined') attachToAsset(staffImg); else onAssetLoaded();
+                if (typeof weaponGiantImg !== 'undefined') attachToAsset(weaponGiantImg); else onAssetLoaded();
+
+                // Load Player specific weapons
+                window.staffPlayerImg = loadImage('staffPlayer', 'img/Staff_player.png');
+                window.gunImg = loadImage('gun', 'img/Gun.png');
+            }, 100);
+
+            // --- 3. INPUT HANDLING ---
+            const keys = {
+                w: false, a: false, s: false, d: false,
+                ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false,
+                space: false
+            };
+
+            function handleKey(e, isDown) {
+                if (isSettingsOpen && bindingKey) return;
+
+                let char = e.key.toUpperCase();
+                if (char === ' ') char = 'SPC';
+
+                // 1. Check custom mappings
+                const controls = currentControls || getSetting('controls');
+                if (char === controls["Move up"]) keys.w = isDown;
+                else if (char === controls["Move down"]) keys.s = isDown;
+                else if (char === controls["Move left"]) keys.a = isDown;
+                else if (char === controls["Move right"]) keys.d = isDown;
+
+                // 2. Standard fallbacks (Always allowed for broad compatibility)
+                if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = isDown;
+                if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = isDown;
+                if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = isDown;
+                if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = isDown;
+                if (e.key === ' ' || e.code === 'Space') keys.space = isDown;
+            }
+
+            window.addEventListener('keydown', (e) => handleKey(e, true));
+            window.addEventListener('keyup', (e) => handleKey(e, false));
+
+            // --- 4. GAME OBJECTS ---
+
+            let lastTime = 0;
+
+            // --- 4. GAME OBJECTS (Config/Classes) ---
+
+            // Attack config based on weapon type
+            const getWeaponConfig = (weaponName) => {
+                const w = weaponName.replace(/\s+/g, ''); // Fix: remove all whitespace including newline
+                if (w === 'Sword') return { type: 'melee', cooldown: 1.0, duration: 0.2, color: 'white', range: 60 };
+                if (w === 'MagicWand' || w === 'Magic Wand') return { type: 'projectile', cooldown: 1.2, speed: 250, duration: 2.0, color: '#44f', size: 10, maxTargetRange: 320 };
+                if (w === 'Bow') return { type: 'projectile', cooldown: 0.8, speed: 450, duration: 1.5, color: '#8b4513', size: 6 };
+                if (w === 'Gun') return { type: 'projectile', cooldown: 0.3, speed: 800, duration: 1.0, color: '#ffd700', size: 4 };
+                return { type: 'melee', cooldown: 0.5, duration: 0.1, color: '#fcc', range: 40 }; // Fist
+            };
+
+            player = {
+                x: 1000, // Starts at map coordinate 1000, 1000 (map is large)
+                y: 1000,
+                speed: 200, // pixels per second
+                state: 'idle', // 'idle', 'walkX', 'walkY'
+                flipX: false,  // true if walking left
+                frameIndex: 0,
+                frameTimer: 0,
+                fps: 8, // animation frames per second
+
+                // Assuming sprite sheet is a single row. We divide total width by a guessed frame count.
+                // A common RPG maker format has 3 frames or 4 frames per animation row. Let's try 4. 
+                scale: 1.5, // Scale character to look good on map
+
+                // Attack properties
+                attackTimer: 0,
+                facingDir: { x: 1, y: 0 },
+                currentAttackDelay: 0, // for multi-projectile shots (e.g. +amount)
+                projectilesToShoot: 0,
+
+                radius: 15,
+                hp: playerData.hp,
+                maxHp: playerData.hp,
+                isDead: false,
+                hitTimer: 0,
+                magnetRange: (playerData.magnetRange || 150), // ระยะดูดไอเทม
+
+                // Swing properties
+                isSwinging: false,
+                swingTimer: 0,
+                swingDuration: 0,
+                swingBaseAngle: 0,
+                swingSign: 1,
+
+                // Dash properties
+                isDashing: false,
+                dashTimer: 0,
+                dashCooldown: 0,
+
+                // Joystick state
+                joystick: { dx: 0, dy: 0, active: false },
+
+                update(dt) {
+                    if (this.isSwinging) {
+                        this.swingTimer -= dt;
+                        if (this.swingTimer <= 0) {
+                            this.isSwinging = false;
+                        }
+                    }
+
+                    let dx = 0;
+                    let dy = 0;
+
+                    if (keys.w || keys.ArrowUp) dy -= 1;
+                    if (keys.s || keys.ArrowDown) dy += 1;
+                    if (keys.a || keys.ArrowLeft) dx -= 1;
+                    if (keys.d || keys.ArrowRight) dx += 1;
+
+                    // If no keyboard input, use joystick
+                    if (dx === 0 && dy === 0 && this.joystick.active) {
+                        dx = this.joystick.dx;
+                        dy = this.joystick.dy;
+                    }
+
+                    // Normalize movement
+                    if (dx !== 0 || dy !== 0) {
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        dx /= length;
+                        dy /= length;
+                    }
+
+                    // Dash Logic
+                    if (this.dashCooldown > 0) this.dashCooldown -= dt;
+
+                    const isDashPressed = keys.space || (typeof dashBtnPressed !== 'undefined' && dashBtnPressed);
+                    if (isDashPressed && this.dashCooldown <= 0 && (dx !== 0 || dy !== 0)) {
+                        this.isDashing = true;
+                        this.dashTimer = 0.25;
+                        this.dashCooldown = 1.5;
+                        if (typeof dashBtnPressed !== 'undefined') dashBtnPressed = false; // Reset if it was from touch
+                    }
+
+                    // --- APPLY SENSITIVITY ---
+                    const sensitivity = getSetting('sensitivity') || 100;
+                    const sensitivityScale = sensitivity / 100;
+                    let currentSpeed = this.speed * sensitivityScale;
+
+                    if (this.isDashing) {
+                        this.dashTimer -= dt;
+                        if (this.dashTimer > 0) {
+                            currentSpeed = (this.speed * sensitivityScale) * 3.5; // เพิ่มความเร็วตอน Dash
+                        } else {
+                            this.isDashing = false;
+                        }
+                    }
+
+                    this.x += dx * currentSpeed * dt;
+                    this.y += dy * currentSpeed * dt;
+
+                    // Update facing dir if moving
+                    if (dx !== 0 || dy !== 0) {
+                        this.facingDir.x = dx;
+                        this.facingDir.y = dy;
+                    }
+
+                    // Determine State
+                    const oldDir = this.direction;
+                    if (dx !== 0) { this.direction = 'side'; this.flipX = dx < 0; }
+                    else if (dy !== 0) { this.direction = 'up'; }
+                    else { this.direction = 'idle'; }
+                    if (this.direction !== oldDir) { this.frameIndex = 0; this.frameTimer = 0; }
+
+                    // Update Camera to follow player (infinite tiling enabled)
+                    camera.x = this.x - canvas.width / 2;
+                    camera.y = this.y - canvas.height / 2;
+
+                    //Animation Update
+                    this.frameTimer += dt;
+                    if (this.frameTimer >= 1 / this.fps) {
+                        this.frameTimer = 0;
+                        const anim = getCharAnim()[this.direction];
+                        if (anim) this.frameIndex = (this.frameIndex + 1) % anim.length;
+                    }
+
+                    // --- Attack Logic ---
+                    this.attackTimer += dt;
+
+                    const wConfig = getWeaponConfig(playerData.weapon);
+                    const cooldownMod = parseFloat(playerData.cooldown) || 0;
+                    const finalCooldown = wConfig.cooldown * (1 + cooldownMod / 100);
+
+                    if (this.attackTimer >= finalCooldown) {
+                        this.attackTimer = 0;
+                        this.projectilesToShoot = 1 + (parseInt(playerData.amount) || 0);
+                        this.currentAttackDelay = 0;
+                    }
+
+                    // Handle multi-shots
+                    if (this.projectilesToShoot > 0) {
+                        this.currentAttackDelay -= dt;
+                        if (this.currentAttackDelay <= 0) {
+                            this.projectilesToShoot--;
+                            this.currentAttackDelay = 0.1; // 100ms between extra projectiles
+
+                            // Fire projectile
+                            this.fireAttack(wConfig);
+                        }
+                    }
+                },
+
+                fireAttack(config) {
+                    let px = this.x;
+                    let py = this.y;
+
+                    // Get aim direction (already overrides on mobile)
+                    let aimDir = AimSystem.getAimDirection(px, py, camera.x, camera.y);
+                    let vx = aimDir.x;
+                    let vy = aimDir.y;
+
+                    if (config.type === 'projectile') {
+                        const wClean = playerData.weapon.replace(/\s+/g, '');
+                        if (wClean === 'MagicWand') {
+                            // Mage AOE Attack at Cursor
+                            let worldX = AimSystem.mouseX + camera.x;
+                            let worldY = AimSystem.mouseY + camera.y;
+
+                            if (isMobile) {
+                                const mEnemy = getMobileNearestEnemy(px, py, config.maxTargetRange || 320);
+                                if (mEnemy) {
+                                    worldX = mEnemy.x;
+                                    worldY = mEnemy.y;
+                                } else {
+                                    worldX = px + aimDir.x * 150;
+                                    worldY = py + aimDir.y * 150;
+                                }
+                            }
+
+                            // Clamp target to weapon's max range
+                            if (config.maxTargetRange) {
+                                const dx = worldX - px, dy = worldY - py;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist > config.maxTargetRange) {
+                                    worldX = px + (dx / dist) * config.maxTargetRange;
+                                    worldY = py + (dy / dist) * config.maxTargetRange;
+                                }
+                            }
+
+                            const aoeRadius = 85 + (config.size || 0);
+
+                            aoeMarkers.push({
+                                x: worldX,
+                                y: worldY,
+                                radius: aoeRadius,
+                                timer: 0,
+                                maxTimer: 45, // 0.75s warning
+                                owner: 'player',
+                                sourceX: this.x,
+                                sourceY: this.y,
+                                damage: playerData.atk * 3 // AOE dealing higher damage
+                            });
+
+                            if (network.connection && network.connection.open) {
+                                network.sendData(JSON.stringify({
+                                    type: 'playerAoeAttack',
+                                    x: worldX, y: worldY,
+                                    radius: aoeRadius,
+                                    maxTimer: 45,
+                                    sourceX: this.x,
+                                    sourceY: this.y,
+                                    weapon: 'MagicWand'
+                                }));
+                            }
+                            return; // No projectile spawned
+                        }
+
+                        // Apply spawn offset so bullets come out from the weapon tip
+                        let offset = 0;
+                        if (wClean === 'Bow') {
+                            offset = 40;
+                            // Play bow sound like Enemy 4
+                            if (typeof arrowSound !== 'undefined') {
+                                arrowSound.currentTime = 0;
+                                arrowSound.play();
+                            }
+                        }
+                        else if (wClean === 'Gun') {
+                            offset = 55;
+                            if (typeof gunshoot !== 'undefined') {
+                                gunshoot.currentTime = 0;
+                                gunshoot.play();
+                            }
+                        }
+
+                        px += vx * offset;
+                        py += vy * offset;
+
+                        projectiles.push({
+                            x: px, y: py,
+                            vx: vx * config.speed, vy: vy * config.speed,
+                            lifetime: config.duration,
+                            config: config,
+                            weapon: playerData.weapon,
+                            damage: playerData.atk,
+                            homingTarget: null
+                        });
+
+                        // Sync attack to partner
+                        if (netMode) {
+                            network.sendData(JSON.stringify({
+                                type: 'attackSync',
+                                x: px, y: py,
+                                vx: vx * config.speed, vy: vy * config.speed,
+                                life: config.duration,
+                                weapon: playerData.weapon,
+                                isMelee: false
+                            }));
+                        }
+                    } else if (config.type === 'melee') {
+                        // Melee attack stays at player position + offset
+                        const offset = 30;
+
+                        projectiles.push({
+                            offsetX: vx * offset, offsetY: vy * offset,
+                            dx: vx, dy: vy,
+                            lifetime: config.duration,
+                            config: config,
+                            isMelee: true,
+                            damage: playerData.atk
+                        });
+
+                        // Sync melee attack to partner
+                        if (netMode) {
+                            network.sendData(JSON.stringify({
+                                type: 'attackSync',
+                                ox: vx * offset, oy: vy * offset,
+                                dx: vx, dy: vy,
+                                life: config.duration,
+                                weapon: playerData.weapon,
+                                isMelee: true
+                            }));
+                        }
+
+                        const wName = playerData.weapon ? playerData.weapon.replace('\n ', '') : 'Fist';
+                        if (wName === 'Sword') {
+                            this.isSwinging = true;
+                            this.swingDuration = config.duration;
+                            this.swingTimer = config.duration;
+                            this.swingBaseAngle = Math.atan2(vy, vx);
+                            let isFacingLeft = Math.abs(this.swingBaseAngle) > Math.PI / 2;
+                            this.swingSign = isFacingLeft ? -1 : 1;
+                            if (typeof swingsword !== 'undefined') {
+                                swingsword.currentTime = 0;
+                                swingsword.play();
+                            }
+                        }
+                    }
+                },
+
+                draw(ctx) {
+                    const anim = getCharAnim()[this.direction];
+                    if (!anim || anim.length === 0) return;
+
+                    const frameImg = getFrameImage(anim[this.frameIndex]);
+                    if (!frameImg.complete) return;
+
+                    const targetHeight = 80;
+                    const renderScale = targetHeight / frameImg.height;
+                    const drawWidth = frameImg.width * renderScale;
+                    const drawHeight = frameImg.height * renderScale;
+
+                    const screenX = this.x - camera.x;
+                    const screenY = this.y - camera.y;
+
+                    ctx.save();
+                    ctx.translate(screenX, screenY);
+                    if (this.flipX) ctx.scale(-1, 1);
+                    if (this.hitTimer > 0 && (Math.floor(Date.now() / 100) % 2 === 0)) ctx.globalAlpha = 0.6;
+                    ctx.drawImage(frameImg, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.font = '10px "Press Start 2P"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(charName, screenX, screenY + drawHeight / 2 + 15);
+                    ctx.restore();
+
+                    // --- DRAW WEAPON FOR PLAYER ---
+                    const wName = playerData.weapon ? playerData.weapon.replace(/\s+/g, '') : 'Fist';
+                    let aimDir = AimSystem.getAimDirection(this.x, this.y, camera.x, camera.y);
+                    let aimAngle = Math.atan2(aimDir.y, aimDir.x);
+
+                    if (wName === 'Sword') {
+                        let drawAngle = 0;
+                        let isFacingLeft = false;
+
+                        if (this.isSwinging) {
+                            const progress = 1 - Math.max(0, this.swingTimer / this.swingDuration); // 0 -> 1
+                            drawAngle = this.swingBaseAngle - (this.swingSign * Math.PI / 1.5) + (this.swingSign * Math.PI * 1.33 * progress);
+                            isFacingLeft = Math.abs(drawAngle) > Math.PI / 2;
+                        } else {
+                            drawAngle = aimAngle;
+                            isFacingLeft = Math.abs(aimAngle) > Math.PI / 2;
+                        }
+
+                        ctx.save();
+                        ctx.translate(screenX, screenY);
+                        ctx.rotate(drawAngle);
+                        if (isFacingLeft) ctx.scale(1, -1);
+                        ctx.rotate(Math.PI / 4);
+
+                        if (typeof swordImg !== 'undefined' && swordImg && swordImg.complete && swordImg.naturalWidth > 0) {
+                            ctx.drawImage(swordImg, 0, -60, 60, 60);
+                        }
+                        ctx.restore();
+
+                        if (this.isSwinging) {
+                            ctx.save();
+                            ctx.translate(screenX, screenY);
+                            ctx.beginPath();
+                            let startArc = this.swingBaseAngle - (this.swingSign * Math.PI / 1.5);
+                            ctx.arc(0, 0, 75, startArc, drawAngle, this.swingSign === -1);
+                            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+                            ctx.lineWidth = 12;
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    } else if (wName === 'Bow') {
+                        // Draw Bow like Enemy ID 4
+                        ctx.save();
+                        ctx.translate(screenX, screenY);
+                        ctx.rotate(aimAngle);
+                        if (Math.abs(aimAngle) > Math.PI / 2) ctx.scale(1, -1);
+                        ctx.rotate(Math.PI / -4);
+                        if (typeof bowImg !== 'undefined' && bowImg && bowImg.complete && bowImg.naturalWidth > 0) {
+                            ctx.drawImage(bowImg, 4, 3, 40, 50);
+                        }
+                        ctx.restore();
+
+                        // If "winding up" (just before firing), show the arrow
+                        const wConfig = getWeaponConfig(playerData.weapon);
+                        const cooldownMod = parseFloat(playerData.cooldown) || 0;
+                        const finalCooldown = wConfig.cooldown * (1 + cooldownMod / 100);
+
+                        // Show arrow when attack is nearly ready (last 30% of cooldown) or if multi-shot is active
+                        if (this.attackTimer > finalCooldown * 0.7 || this.projectilesToShoot > 0) {
+                            const bowX = screenX + Math.cos(aimAngle) * 20;
+                            const bowY = screenY + Math.sin(aimAngle) * 20;
+                            ctx.save();
+                            ctx.translate(bowX, bowY);
+                            ctx.rotate(aimAngle - Math.PI / 70);
+                            if (typeof arrowImg !== 'undefined' && arrowImg && arrowImg.complete && arrowImg.naturalWidth > 0) {
+                                ctx.drawImage(arrowImg, 10, -100, 50, 200);
+                            }
+                            ctx.restore();
+                        }
+                    } else if (wName === 'MagicWand') {
+                        // Draw Staff for Mage
+                        ctx.save();
+                        ctx.translate(screenX, screenY);
+                        ctx.rotate(aimAngle);
+                        if (Math.abs(aimAngle) > Math.PI / 2) ctx.scale(1, -1);
+                        ctx.rotate(Math.PI / 4);
+                        if (typeof staffPlayerImg !== 'undefined' && staffPlayerImg && staffPlayerImg.complete && staffPlayerImg.naturalWidth > 0) {
+                            ctx.drawImage(staffPlayerImg, -10, -60, 60, 60);
+                        }
+                        ctx.restore();
+                    } else if (wName === 'Gun') {
+                        // Draw Gun for Gunner
+                        ctx.save();
+                        ctx.translate(screenX, screenY);
+                        ctx.rotate(aimAngle);
+                        if (Math.abs(aimAngle) > Math.PI / 2) ctx.scale(1, -1);
+                        if (typeof gunImg !== 'undefined' && gunImg && gunImg.complete && gunImg.naturalWidth > 0) {
+                            ctx.drawImage(gunImg, 10, -15, 50, 30);
+                        }
+                        ctx.restore();
+                    }
+                }
+            };
+
+            // --- 5. MOBILE CONTROLS LOGIC ---
+            let dashBtnPressed = false;
+            if (isMobile) {
+                const joystickArea = document.getElementById('joystick-area');
+                const joystickBase = document.getElementById('joystick-base');
+                const joystickKnob = document.getElementById('joystick-knob');
+                const dashBtn = document.getElementById('mobile-dash');
+
+                // Try to lock orientation to landscape
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.log("Orientation lock not allowed without interaction"));
+                }
+
+                let areaRect = joystickArea.getBoundingClientRect();
+                const baseRadius = joystickBase.offsetWidth / 2;
+
+                const repositionJoystick = (touch) => {
+                    areaRect = joystickArea.getBoundingClientRect();
+                    const radius = joystickBase.offsetWidth / 2;
+
+                    // Convert screen coordinates to coordinates relative to joystickArea
+                    let relX = touch.clientX - areaRect.left;
+                    let relY = touch.clientY - areaRect.top;
+
+                    // Clamp base position so it stays inside joystickArea
+                    relX = Math.max(radius, Math.min(areaRect.width - radius, relX));
+                    relY = Math.max(radius, Math.min(areaRect.height - radius, relY));
+
+                    joystickBase.style.left = relX + 'px';
+                    joystickBase.style.top = relY + 'px';
+                    joystickBase.style.display = 'block';
+                };
+
+                const handleJoystickMove = (e) => {
+                    const touch = e.touches[0];
+                    const baseRect = joystickBase.getBoundingClientRect();
+                    const centerX = baseRect.left + baseRect.width / 2;
+                    const centerY = baseRect.top + baseRect.height / 2;
+
+                    let dx = touch.clientX - centerX;
+                    let dy = touch.clientY - centerY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const maxRadius = joystickBase.offsetWidth / 2;
+
+                    if (dist > maxRadius) {
+                        dx = (dx / dist) * maxRadius;
+                        dy = (dy / dist) * maxRadius;
+                    }
+
+                    joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+                    player.joystick.dx = dx / maxRadius;
+                    player.joystick.dy = dy / maxRadius;
+                    player.joystick.active = true;
+                };
+
+                joystickArea.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    repositionJoystick(e.touches[0]);
+                    handleJoystickMove(e);
+                }, { passive: false });
+
+                joystickArea.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    handleJoystickMove(e);
+                }, { passive: false });
+
+                joystickArea.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    joystickKnob.style.transform = `translate(-50%, -50%)`;
+                    player.joystick.active = false;
+                    player.joystick.dx = 0;
+                    player.joystick.dy = 0;
+                    // Keep joystickBase visible where it is, or hide if preferred
+                    // joystickBase.style.display = 'none'; 
+                }, { passive: false });
+
+                dashBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    dashBtnPressed = true;
+                }, { passive: false });
+            }
+
+            // --- 6. GAME LOOP ---
+            function startGame() {
+                loadingText.style.display = 'none';
+                playerBanner.style.display = 'block';
+
+                // Apply saved volume settings to all sounds
+                applyGlobalVolume();
+
+                // Check Map Size and place player in roughly the middle if the map is big
+                if (images.map) {
+                    player.x = images.map.width / 2;
+                    player.y = images.map.height / 2;
+                    // Set map size for level manager
+                    levelManager.setMapSize(images.map.width, images.map.height);
+                }
+                gameLogic.player = player;
+                console.log('Game started. gameLogic.player set:', gameLogic.player);
+                console.log('enemyRewards available:', typeof enemyRewards !== 'undefined');
+
+                // Start Wave 1 (countdown 3 seconds then spawn)
+                waveManager.startWave(1);
+
+                animationId = requestAnimationFrame(gameLoop);
+            }
+
+            function checkPause() {
+                const buyPanel = document.getElementById('buy-panel-container');
+                const levelUpPanel = document.getElementById('levelup-panel-container');
+
+                const isBuyOpen = buyPanel && buyPanel.classList.contains('show');
+                const isLevelUpOpen = levelUpPanel && levelUpPanel.classList.contains('show');
+
+                const currentLocalPause = isBuyOpen || isLevelUpOpen || isSettingsOpen;
+
+                // Sync pause state over network
+                if (typeof window.localPaused === 'undefined') window.localPaused = false;
+                if (window.localPaused !== currentLocalPause) {
+                    window.localPaused = currentLocalPause;
+                    if (typeof network !== 'undefined' && typeof netMode !== 'undefined' && netMode) {
+                        network.sendData(JSON.stringify({ type: 'pauseSync', paused: currentLocalPause }));
+                    }
+                }
+
+                return currentLocalPause || (window.remotePaused === true);
+            }
+
+            function gameLoop(timestamp) {
+                // Delta time calculation
+                if (!lastTime) lastTime = timestamp;
+                const dt = (timestamp - lastTime) / 1000; // in seconds
+                lastTime = timestamp;
+
+                const paused = checkPause();
+                const cappedDt = Math.min(dt, 0.1);
+
+                if (!paused) {
+                    update(cappedDt);
+                }
+                // ถ้าเกมโดน Pause จะไม่มีการเรียก update() หรือ updateWorldOnly() 
+                // เพื่อให้เวลา Wave และศัตรูทั้งหมดหยุดนิ่งรอผู้เล่นทั้งสองฝั่งซื้อของเสร็จ
+
+
+                // Always run network updates so players don't freeze in menus
+                networkUpdate(cappedDt);
+
+                draw();
+
+                animationId = requestAnimationFrame(gameLoop);
+            }
+
+            function networkUpdate(dt) {
+                frameCount++;
+
+                if (network.connection && network.connection.open) {
+                    const aimDir = AimSystem.getAimDirection(player.x, player.y, camera.x, camera.y);
+                    const aimAngle = Math.atan2(aimDir.y, aimDir.x);
+
+                    // Broadcast self only if significantly moved or changed
+                    const movedDistSq = (player.x - (player.lastSentX || 0)) ** 2 + (player.y - (player.lastSentY || 0)) ** 2;
+                    const aimAngleDiff = Math.abs(aimAngle - (player.lastSentAimAngle || 0));
+                    const statusChanged = player.hp !== player.lastSentHP || player.isDead !== player.lastSentDead || player.direction !== player.lastSentDir ||
+                        player.isSwinging !== player.lastSentSwinging || (aimAngleDiff > 0.05);
+
+                    if (statusChanged || movedDistSq > 1 || frameCount % 60 === 0) {
+                        network.sendData(JSON.stringify({
+                            type: 'playerUpdate',
+                            x: Math.round(player.x),
+                            y: Math.round(player.y),
+                            hp: player.hp,
+                            maxHp: player.maxHp,
+                            direction: player.direction,
+                            flipX: player.flipX,
+                            name: charName,
+                            charClass: charClass,
+                            weapon: playerData.weapon,
+                            aimAngle: aimAngle,
+                            isDead: player.isDead,
+                            magnetRange: player.magnetRange,
+                            // Swing states
+                            isSwinging: player.isSwinging,
+                            swT: player.swingTimer,
+                            swD: player.swingDuration,
+                            swB: player.swingBaseAngle,
+                            swS: player.swingSign
+                        }));
+                        player.lastSentX = player.x;
+                        player.lastSentY = player.y;
+                        player.lastSentHP = player.hp;
+                        player.lastSentDead = player.isDead;
+                        player.lastSentDir = player.direction;
+                        player.lastSentAimAngle = aimAngle;
+                        player.lastSentSwinging = player.isSwinging;
+                    }
+
+                    // Host broadcasts all enemies every 10 frames
+                    if (netMode === 'host' && frameCount % 10 === 0) {
+                        const enemyData = enemies.filter(e => !e.dead).map(e => ({
+                            id: e.id, t: e.type, x: Math.round(e.x), y: Math.round(e.y),
+                            hp: Math.round(e.hp % 1 === 0 ? e.hp : e.hp.toFixed(1)),
+                            maxHp: e.maxHp,
+                            // Send state for animation/attacks
+                            st: e.state ? e.state.mode : undefined,
+                            a: e.state ? e.state.angle : undefined,
+                            am: e.state ? e.state.aiming : undefined,
+                            z: e.state ? e.state.z : undefined
+                        }));
+                        network.sendData(JSON.stringify({
+                            type: 'enemySync',
+                            enemies: enemyData,
+                            wave: {
+                                timer: waveManager.waveTimer,
+                                num: waveManager.currentWave,
+                                active: waveManager.isWaveActive,
+                                spawned: waveManager.hasSpawned,
+                                cd: waveManager.countdownTimer,
+                                sCount: waveManager.spawnedCount,
+                                total: waveManager.enemiesInWave
+                            }
+                        }));
+                    }
+
+                    // Host broadcasts Shared Stats & Gems every 20 frames
+                    if (netMode === 'host' && frameCount % 20 === 0) {
+                        // Stat sync (XP, Level) - no coin
+                        network.sendData(JSON.stringify({
+                            type: 'statSync',
+                            xp: gameLogic.xp,
+                            maxXP: gameLogic.maxXP,
+                            level: gameLogic.level
+                        }));
+
+                        // Gem sync
+                        const gemData = levelManager.levels.map(g => ({
+                            id: g.id, x: Math.round(g.x), y: Math.round(g.y), t: g.type
+                        }));
+                        network.sendData(JSON.stringify({
+                            type: 'gemSync',
+                            gems: gemData
+                        }));
+                    }
+                }
+                syncGlobals();
+            }
+
+            function updateWorldOnly(dt) {
+                // Background update for Host while in menu
+                // Clear buffs
+                enemies.forEach(e => {
+                    e.isBuffed = false;
+                    e.speed = e.baseSpeed;
+                });
+
+                // Apply Mage buffs
+                enemies.filter(e => e.type === 8 && !e.dead).forEach(mage => {
+                    let targets = enemies.filter(e => e !== mage && !e.dead).sort((a, b) => a.hp - b.hp).slice(0, 2);
+                    targets.forEach(t => {
+                        t.isBuffed = true;
+                        t.speed = t.baseSpeed * 1.5;
+                        t.hp = Math.min(t.maxHp, t.hp + 0.05);
+                    });
+                });
+
+                // Update Enemies
+                enemies = enemies.filter(e => !e.dead);
+                syncGlobals();
+                for (let i = 0; i < enemies.length; i++) {
+                    enemies[i].update();
+                }
+
+                // Update AOE Markers
+                for (let i = aoeMarkers.length - 1; i >= 0; i--) {
+                    const aoe = aoeMarkers[i];
+                    aoe.timer++;
+                    if (aoe.timer >= aoe.maxTimer) {
+                        if (aoe.owner === 'player') {
+                            enemies.forEach(e => {
+                                if (e.dead) return;
+                                const d = getDist(e.x, e.y, aoe.x, aoe.y);
+                                if (d < aoe.radius + e.radius) {
+                                    e.hp -= (aoe.damage || 30);
+                                    e.hitTimer = 10;
+                                }
+                            });
+                        }
+                        aoeBlastEffects.push({ x: aoe.x, y: aoe.y, radius: aoe.radius, life: 1.0, isPlayer: aoe.owner === 'player' });
+                        aoeMarkers.splice(i, 1);
+                    }
+                }
+
+                // Wave Manager update (Maintain world movement for guest)
+                let targetPlayer = player;
+                if (player.isDead && player2.active && !player2.isDead) targetPlayer = player2;
+                waveManager.update(dt, enemies, targetPlayer);
+            }
+
+            function update(dt) {
+                syncGlobals(); // Import state changes from global scope
+                if (!player.isDead) {
+                    player.update(dt);
+                } else if (player2.active && !player2.isDead) {
+                    // Spectator camera follows player2
+                    camera.x = player2.x - canvas.width / 2;
+                    camera.y = player2.y - canvas.height / 2;
+                }
+
+                if (player.hitTimer > 0) player.hitTimer--;
+
+                // --- Network Update moved to networkUpdate() ---
+
+                if (player2.active) {
+                    // Update remote swing timer locally for smooth animation
+                    if (player2.isSwinging) {
+                        player2.swingTimer = (player2.swingTimer || 0) - dt;
+                        if (player2.swingTimer <= 0) player2.isSwinging = false;
+                    }
+
+                    // Reset frameIndex when direction changes
+                    if (player2.direction !== player2._lastDirection) {
+                        player2.frameIndex = 0;
+                        player2.frameTimer = 0;
+                        player2._lastDirection = player2.direction;
+                    }
+
+                    player2.frameTimer = (player2.frameTimer || 0) + dt;
+                    if (player2.frameTimer >= 1 / 8) { // Assuming 8 fps
+                        player2.frameTimer = 0;
+                        const animDef = typeof CHARACTERS !== 'undefined' ? CHARACTERS.find(ch => ch.name === player2.charClass) : null;
+                        if (animDef) {
+                            const anim = animDef[player2.direction];
+                            if (anim && anim.length > 0) {
+                                player2.frameIndex = (player2.frameIndex + 1) % anim.length;
+                            }
+                        }
+                    }
+                }
+
+                // --- Update Enemy AI & Logic (Host/Single Only) ---
+                if (netMode !== 'join') {
+                    const prevBulletCount = bullets.length;
+                    const prevAoeCount = aoeMarkers.length;
+
+                    // Clear buffs before entity update
+                    enemies.forEach(e => {
+                        e.isBuffed = false;
+                        e.speed = e.baseSpeed;
+                        if (e.type === 3 && e.baseDashSpeed) e.state.dashSpeed = e.baseDashSpeed;
+                    });
+
+                    // Apply Mage buffs
+                    enemies.filter(e => e.type === 8 && !e.dead).forEach(mage => {
+                        let targets = enemies.filter(e => e !== mage && !e.dead).sort((a, b) => a.hp - b.hp).slice(0, 2);
+                        mage.state.targets = targets;
+                        targets.forEach(t => {
+                            t.isBuffed = true;
+                            t.speed = t.baseSpeed * 1.5;
+                            t.hp = Math.min(t.maxHp, t.hp + 0.05);
+                            if (t.type === 3 && t.baseDashSpeed) t.state.dashSpeed = t.baseDashSpeed * 1.5;
+                        });
+                    });
+
+                    // Update Enemy Instances
+                    enemies = enemies.filter(e => !e.dead);
+                    syncGlobals();
+                    for (let i = 0; i < enemies.length; i++) {
+                        enemies[i].update();
+                    }
+
+                    // --- Broadcast New Enemy Attacks ---
+                    if (netMode === 'host') {
+                        // Sync new bullets
+                        if (bullets.length > prevBulletCount) {
+                            for (let i = prevBulletCount; i < bullets.length; i++) {
+                                const b = bullets[i];
+                                network.sendData(JSON.stringify({
+                                    type: 'enemyAttackSync',
+                                    x: b.x, y: b.y, angle: b.angle, speed: b.speed,
+                                    radius: b.radius, color: b.color, owner: b.owner
+                                }));
+                            }
+                        }
+                        // Sync new enemy AOE markers
+                        if (aoeMarkers.length > prevAoeCount) {
+                            for (let i = prevAoeCount; i < aoeMarkers.length; i++) {
+                                const aoe = aoeMarkers[i];
+                                if (aoe.owner !== 'player') {
+                                    network.sendData(JSON.stringify({
+                                        type: 'enemyAoeSync',
+                                        x: aoe.x, y: aoe.y, radius: aoe.radius, maxTimer: aoe.maxTimer
+                                    }));
+                                }
+                            }
+                        }
+                    }
+
+                    // --- Enemy to Enemy Collision (uses shared GRID_SIZE/grid built below) ---
+                    // Note: grid is built in the outer scope after the if/else block
+                    // so we build a temporary local grid here just for enemy-enemy collisions
+                    for (let i = 0; i < enemies.length; i++) {
+                        const e1 = enemies[i];
+                        if (e1.dead) continue;
+
+                        for (let j = i + 1; j < enemies.length; j++) {
+                            const e2 = enemies[j];
+                            if (e2.dead) continue;
+
+                            const dx = e2.x - e1.x;
+                            const dy = e2.y - e1.y;
+                            const distSq = dx * dx + dy * dy;
+                            const minDist = e1.radius + e2.radius;
+
+                            if (distSq < minDist * minDist && distSq > 0) {
+                                const dist = Math.sqrt(distSq);
+                                const overlap = minDist - dist;
+                                const pushX = (dx / dist) * (overlap / 2);
+                                const pushY = (dy / dist) * (overlap / 2);
+                                e1.x -= pushX; e1.y -= pushY;
+                                e2.x += pushX; e2.y += pushY;
+                            }
+                        }
+                    }
+                } else {
+                    // Guest only filters dead enemies (Host tells us who is dead)
+                    enemies = enemies.filter(e => !e.dead);
+                    syncGlobals();
+                    // Update visual only properties for Guest
+                    enemies.forEach(e => {
+                        if (e.spawnTimer > 0) e.spawnTimer--;
+                        if (e.hitTimer > 0) e.hitTimer--;
+                    });
+                }
+
+                // --- Build Spatial Grid (always needed for projectile collision) ---
+                const GRID_SIZE = 150;
+                const grid = {};
+                for (let i = 0; i < enemies.length; i++) {
+                    const e = enemies[i];
+                    if (e.dead) continue;
+                    const gx = Math.floor(e.x / GRID_SIZE);
+                    const gy = Math.floor(e.y / GRID_SIZE);
+                    const key = gx + ',' + gy;
+                    if (!grid[key]) grid[key] = [];
+                    grid[key].push(e);
+                }
+
+                // Update Enemy Bullets
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const b = bullets[i];
+                    b.update();
+                    if (b.active && !b.remote) {
+                        // Check collision with local player
+                        const distLocal = getDist(b.x, b.y, player.x, player.y);
+                        if (distLocal < player.radius + b.radius * 0.7) {
+                            damagePlayer(1);
+                            b.active = false;
+                        }
+                        // Host also checks if bullet hits Player2 (Guest)
+                        if (b.active && netMode === 'host' && player2.active && !player2.isDead) {
+                            const distP2 = getDist(b.x, b.y, player2.x, player2.y);
+                            if (distP2 < player2.radius + b.radius * 0.7) {
+                                // Tell Guest to take damage
+                                network.sendData(JSON.stringify({ type: 'remoteDamage', amount: 1 }));
+                                b.active = false;
+                            }
+                        }
+                    }
+                    if (!b.active) bullets.splice(i, 1);
+                }
+                syncGlobals();
+
+                // Update AOE Markers (Artillery & Mage)
+                for (let i = aoeMarkers.length - 1; i >= 0; i--) {
+                    const aoe = aoeMarkers[i];
+                    aoe.timer++;
+                    if (aoe.timer >= aoe.maxTimer) {
+                        if (typeof bombSound !== 'undefined') {
+                            const sfx = bombSound.cloneNode();
+                            sfx.volume = window.currentVolume !== undefined ? window.currentVolume : 0.2;
+                            sfx.play().catch(e => { });
+                        }
+
+                        if (aoe.owner === 'player') {
+                            // Player version: damage enemies
+                            const dmg = (aoe.damage || 30);
+                            enemies.forEach(e => {
+                                if (e.dead) return;
+                                const d = getDist(e.x, e.y, aoe.x, aoe.y);
+                                if (d < aoe.radius + e.radius) {
+                                    e.hp -= dmg;
+                                    e.hitTimer = 10;
+                                    totalDamage += dmg;
+                                    // Report hit to host if we are joiner
+                                    if (netMode === 'join' && dmg > 0) {
+                                        network.sendData(JSON.stringify({ type: 'enemyHit', enemyId: e.id, damage: dmg }));
+                                    }
+                                }
+                            });
+
+                        } else {
+                            // Enemy AOE: damage local player
+                            const distToPlayer = getDist(aoe.x, aoe.y, player.x, player.y);
+                            if (distToPlayer < aoe.radius + player.radius) {
+                                if (netMode === 'join') {
+                                    // Guest takes damage and reports to Host
+                                    damagePlayer(1);
+                                    network.sendData(JSON.stringify({ type: 'reportPlayerDamage', amount: 1 }));
+                                } else {
+                                    damagePlayer(1);
+                                }
+                            }
+                            // Host also checks if AOE hits Player2 (Guest)
+                            if (netMode === 'host' && player2.active && !player2.isDead) {
+                                const distToP2 = getDist(aoe.x, aoe.y, player2.x, player2.y);
+                                if (distToP2 < aoe.radius + player2.radius) {
+                                    network.sendData(JSON.stringify({ type: 'remoteDamage', amount: 1 }));
+                                }
+                            }
+                        }
+
+                        aoeBlastEffects.push({ x: aoe.x, y: aoe.y, radius: aoe.radius, life: 1.0, isPlayer: aoe.owner === 'player' });
+                        aoeMarkers.splice(i, 1);
+                    }
+                }
+
+                // Update Blast Effects
+                for (let i = aoeBlastEffects.length - 1; i >= 0; i--) {
+                    aoeBlastEffects[i].life -= 0.05;
+                    if (aoeBlastEffects[i].life <= 0) {
+                        aoeBlastEffects.splice(i, 1);
+                    }
+                }
+
+                // Update projectiles
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    let p = projectiles[i];
+                    p.lifetime -= dt;
+                    if (p.lifetime <= 0) {
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    if (!p.isMelee) {
+                        if (p.homingTarget && !p.homingTarget.dead) {
+                            let targetAngle = Math.atan2(p.homingTarget.y - p.y, p.homingTarget.x - p.x);
+                            let currentAngle = Math.atan2(p.vy, p.vx);
+                            let diff = targetAngle - currentAngle;
+                            while (diff < -Math.PI) diff += Math.PI * 2;
+                            while (diff > Math.PI) diff -= Math.PI * 2;
+                            currentAngle += Math.sign(diff) * Math.min(Math.abs(diff), 8 * dt);
+                            p.vx = Math.cos(currentAngle) * p.config.speed;
+                            p.vy = Math.sin(currentAngle) * p.config.speed;
+                        }
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
+                    } else {
+                        p.x = player.x + (p.offsetX || 0);
+                        p.y = player.y + (p.offsetY || 0);
+                    }
+
+                    // Check collisions against enemies (Optimized with Grid)
+                    const pgx = Math.floor(p.x / GRID_SIZE);
+                    const pgy = Math.floor(p.y / GRID_SIZE);
+                    let hitDetected = false;
+
+                    for (let ox = -1; ox <= 1 && !hitDetected; ox++) {
+                        for (let oy = -1; oy <= 1 && !hitDetected; oy++) {
+                            const cell = grid[(pgx + ox) + ',' + (pgy + oy)];
+                            if (!cell) continue;
+                            for (let j = 0; j < cell.length; j++) {
+                                let e = cell[j];
+                                if (e.dead) continue;
+                                let hit = false;
+                                const dx = e.x - p.x, dy = e.y - p.y;
+                                const distSq = dx * dx + dy * dy;
+                                const range = (p.isMelee ? p.config.range : p.config.size) + e.radius;
+
+                                if (distSq < range * range) {
+                                    if (p.isMelee) {
+                                        if (!p.hitEnemies) p.hitEnemies = new Set();
+                                        if (!p.hitEnemies.has(e)) {
+                                            p.hitEnemies.add(e);
+                                            hit = true;
+                                        }
+                                    } else {
+                                        hit = true;
+                                    }
+                                }
+
+                                if (hit) {
+                                    const dmg = (p.damage || 10);
+
+                                    // Calculate knockback immediately so we can send it
+                                    let kx = 0, ky = 0;
+                                    if (p.isMelee) {
+                                        kx = p.dx;
+                                        ky = p.dy;
+                                    } else {
+                                        const mag = Math.hypot(p.vx, p.vy) || 1;
+                                        kx = p.vx / mag;
+                                        ky = p.vy / mag;
+                                    }
+
+                                    if (netMode === 'join') {
+                                        // Guest reports hit to Host with knockback vector
+                                        network.sendData(JSON.stringify({
+                                            type: 'enemyHit',
+                                            enemyId: e.id,
+                                            damage: dmg,
+                                            kx: kx,
+                                            ky: ky
+                                        }));
+                                        // Predictive hit effect for better feel
+                                        e.hp -= dmg;
+                                        e.hitTimer = 10;
+                                    } else {
+                                        // Host or Single Player applies damage directly
+                                        e.hp -= dmg;
+                                        e.hitTimer = 10;
+                                    }
+                                    totalDamage += dmg;
+
+                                    const strength = 8;
+                                    e.kbX = kx * strength;
+                                    e.kbY = ky * strength;
+
+                                    if (!p.isMelee) {
+                                        projectiles.splice(i, 1);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- LEVEL SYSTEM & WAVE UPDATE (Authoritative for Host/Single) ---
+                // Always update gameLogic so magnet works on both clients visually
+                gameLogic.update();
+
+                if (netMode !== 'join') {
+                    // Determine surviving player for enemy targeting/spawning
+                    let targetPlayer = player;
+                    if (player.isDead && player2.active && !player2.isDead) {
+                        targetPlayer = player2;
+                    }
+
+                    // Update Wave System (auto-spawn when countdown ends)
+                    waveManager.update(dt, enemies, targetPlayer);
+
+                    // Auto-start next wave countdown if all enemies are dead
+                    if (enemies.length === 0 && waveManager.isWaveActive === false && !waveManager.isShopOpen) {
+                        waveManager.startWave(waveManager.currentWave);
+                    }
+                }
+
+                if (netMode !== 'join') {
+                    // Host checks collection for all players
+                    levelManager.checkPlayerCollection(player, false);
+                    if (player2.active) levelManager.checkPlayerCollection(player2, true);
+
+                    // Note: network synchronization for gems is handled via gameLogic's callbacks
+                    // or we can add a manual sync here if needed.
+
+                    // เจน Exp ในแผนที่อัตโนมัติรอบๆ ตัวผู้เล่น
+                    if (frameCount % 240 === 0) { // ทุกๆ ~4 วินาที ที่ 60fps
+                        levelManager.spawnLevelWave(2);
+                    }
+                } else {
+                    // Guest predicts collection
+                    levelManager.levels.forEach(level => {
+                        if (!level.collected && level.checkCollisionWithPlayer(player)) {
+                            level.collected = true;
+                            if (level.type === 'coin') {
+                                gameLogic.addcoin(level.coinValue); // Guest adds own coin
+                            }
+                            // Guest doesn't add XP locally yet, waits for Host confirmation or adds predictively
+                            network.sendData(JSON.stringify({ type: 'gemCollected', id: level.id, remote: false }));
+                        }
+                    });
+                }
+                syncGlobals();
+            }
+
+            // Update UI stats display when XP changes
+            function updateUIStats() {
+                // XP และ Level
+                const xpDisplay = document.getElementById('ui-xp');
+                if (xpDisplay) xpDisplay.innerText = gameLogic.xp + '/' + gameLogic.maxXP;
+
+                const xpBar = document.getElementById('ui-xp-bar');
+                if (xpBar) {
+                    const percent = (gameLogic.xp / gameLogic.maxXP) * 100;
+                    xpBar.style.width = Math.min(100, Math.max(0, percent)) + '%';
+                }
+
+                const levelDisplay = document.getElementById('ui-class');
+                if (levelDisplay) {
+                    const weaponName = (playerData.weapon || 'Fist').replace('\n ', '');
+                    levelDisplay.innerText = 'Lv ' + gameLogic.level + ' - ' + charClass + ' (' + weaponName + ')';
+                }
+
+                // Stats ทั้งหมด
+                const ui = {
+                    'ui-hp': Math.max(0, player.hp) + '/' + player.maxHp,
+                    'ui-atk': playerData.atk,
+                    'ui-spd': playerData.spd,
+                    'ui-cd': parseFloat(playerData.cd).toFixed(2),
+                    'ui-prj': playerData.projectile,
+                    'ui-arm': playerData.armored,
+                    'ui-coin': gameLogic.coin,
+                };
+
+                for (const [id, val] of Object.entries(ui)) {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.innerText = val;
+                    }
+                }
+            }
+
+            function draw() {
+                syncGlobals(); // Ensure drawing utilities see latest state
+                ctx.save();
+                if (window.screenShake > 0) {
+                    ctx.translate(Math.random() * window.screenShake - window.screenShake / 2, Math.random() * window.screenShake - window.screenShake / 2);
+                    window.screenShake *= 0.9;
+                    if (window.screenShake < 0.2) window.screenShake = 0;
+                }
+
+                // Clear screen
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Map (Efficient Tiling)
+                if (images.map && images.map.complete) {
+                    if (!mapPattern) {
+                        mapPattern = ctx.createPattern(images.map, 'repeat');
+                    }
+                    ctx.save();
+                    // Offset pattern by camera and use context translation to align
+                    ctx.translate(-camera.x % images.map.width, -camera.y % images.map.height);
+                    ctx.fillStyle = mapPattern;
+                    ctx.fillRect(0 - images.map.width, 0 - images.map.height, canvas.width + images.map.width * 2, canvas.height + images.map.height * 2);
+                    ctx.restore();
+                }
+
+                // Draw Enemies and Effects relative to camera
+                ctx.save();
+                ctx.translate(-camera.x, -camera.y);
+
+                aoeMarkers.forEach(aoe => {
+                    const isPlayer = aoe.owner === 'player';
+
+                    // Draw connecting dashed line for player
+                    if (isPlayer && aoe.sourceX !== undefined) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([8, 8]);
+                        ctx.strokeStyle = "rgba(0, 255, 255, 0.4)";
+                        ctx.lineWidth = 2;
+                        ctx.moveTo(aoe.sourceX, aoe.sourceY);
+                        ctx.lineTo(aoe.x, aoe.y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
+                    ctx.beginPath(); ctx.arc(aoe.x, aoe.y, aoe.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = isPlayer ? "rgba(0, 255, 255, 0.6)" : "rgba(255, 0, 0, 0.5)";
+                    ctx.lineWidth = 2; ctx.stroke();
+                    const fillRadius = (aoe.timer / aoe.maxTimer) * aoe.radius;
+                    ctx.beginPath(); ctx.arc(aoe.x, aoe.y, fillRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = isPlayer ? "rgba(0, 255, 255, 0.3)" : "rgba(255, 0, 0, 0.3)"; ctx.fill();
+                });
+
+                aoeBlastEffects.forEach(blast => {
+                    ctx.beginPath(); ctx.arc(blast.x, blast.y, blast.radius, 0, Math.PI * 2);
+                    const color = blast.isPlayer ? "0, 255, 255" : "255, 85, 85";
+                    ctx.fillStyle = `rgba(${color}, ${blast.life * 0.7})`; ctx.fill();
+                });
+
+                bullets.forEach(e => e.draw(ctx));
+                enemies.forEach(e => e.draw(ctx));
+
+                // Draw Levels (Experience Drops)
+
+                levelManager.drawAll(ctx, camera);
+
+                ctx.restore();
+
+
+
+                if (!player.isDead) {
+                    player.draw(ctx);
+                }
+
+                if (player2.active && !player2.isDead) {
+                    drawPlayer2(ctx);
+                }
+
+                // Draw Projectiles
+                projectiles.forEach(p => {
+                    ctx.save();
+                    const sx = p.x - camera.x;
+                    const sy = p.y - camera.y;
+
+                    ctx.fillStyle = p.config.color || '#fff';
+                    ctx.globalAlpha = Math.min(1, p.lifetime * 4); // fade out
+                    ctx.translate(sx, sy);
+
+                    if (p.isMelee) {
+                        const wName = typeof playerData !== 'undefined' && playerData.weapon ? playerData.weapon.replace('\n ', '') : 'Fist';
+                        if (wName !== 'Sword') {
+                            // Draw arc/slash
+                            const angle = Math.atan2(p.dy, p.dx);
+                            ctx.rotate(angle);
+                            ctx.beginPath();
+                            ctx.arc(0, 0, p.config.range, -Math.PI / 3, Math.PI / 3);
+                            ctx.strokeStyle = p.config.color;
+                            ctx.lineWidth = 15;
+                            ctx.stroke();
+                        }
+                    } else {
+                        // Draw projectile
+                        let angle = Math.atan2(p.vy, p.vx);
+                        ctx.rotate(angle);
+
+                        const weaponName = p.weapon ? p.weapon.replace('\n ', '') : '';
+                        if (weaponName === 'Bow' && typeof arrowImg !== 'undefined' && arrowImg && arrowImg.complete) {
+                            // Use same scale/offset as Bullet.draw for consistency
+                            ctx.rotate(-Math.PI / 70);
+                            ctx.drawImage(arrowImg, 10, -100, 50, 200);
+                        } else {
+                            ctx.fillRect(-p.config.size, -p.config.size / 2, p.config.size * 2, p.config.size);
+                        }
+                    }
+
+                    ctx.restore();
+                });
+
+                ctx.restore(); // Ends the screenShake save state
+
+                // Draw Wave Info
+                const waveText = waveManager.getDisplayText();
+                ctx.save();
+                ctx.font = 'bold 24px "Press Start 2P"';
+                ctx.fillStyle = '#FFD700';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#000';
+                ctx.shadowBlur = 10;
+                ctx.fillText(waveText, canvas.width / 2, 60);
+                ctx.restore();
+
+                // --- Waiting for other player Text ---
+                if (window.remotePaused && !window.localPaused) {
+                    ctx.save();
+                    // Reset transform so the overlay covers the whole screen exactly
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = 'bold 24px "Press Start 2P", sans-serif';
+                    ctx.fillStyle = '#FFD700';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = '#000';
+                    ctx.shadowBlur = 10;
+                    ctx.fillText("Waiting for another player...", canvas.width / 2, canvas.height / 2);
+                    ctx.restore();
+                }
+                // --- Draw Crosshair (PC/Mouse only) ---
+                if (!isMobile) {
+                    const cx = AimSystem.mouseX;
+                    const cy = AimSystem.mouseY;
+
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+                    ctx.shadowBlur = 5;
+
+                    // Outer lines
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+                    ctx.lineWidth = 1.5;
+
+                    const gap = 5, len = 11;
+
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy - gap); ctx.lineTo(cx, cy - gap - len); // Top
+                    ctx.moveTo(cx, cy + gap); ctx.lineTo(cx, cy + gap + len); // Bottom
+                    ctx.moveTo(cx - gap, cy); ctx.lineTo(cx - gap - len, cy);        // Left
+                    ctx.moveTo(cx + gap, cy); ctx.lineTo(cx + gap + len, cy);        // Right
+                    ctx.stroke();
+
+                    // Center dot
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255, 80, 80, 0.95)';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+
+            function drawPlayer2(ctx) {
+                if (typeof CHARACTERS === 'undefined') return;
+                const charDef = CHARACTERS.find(ch => ch.name === player2.charClass);
+                if (!charDef) return;
+                const anim = charDef[player2.direction] || charDef['idle'];
+                if (!anim || anim.length === 0) return;
+
+                const frameImg = getFrameImage(anim[player2.frameIndex || 0] || anim[0]);
+                if (!frameImg || !frameImg.complete) return;
+
+                const targetHeight = 80;
+                const renderScale = targetHeight / frameImg.height;
+                const drawWidth = frameImg.width * renderScale;
+                const drawHeight = frameImg.height * renderScale;
+
+                const screenX = player2.x - camera.x;
+                const screenY = player2.y - camera.y;
+
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                if (player2.flipX) ctx.scale(-1, 1);
+                ctx.drawImage(frameImg, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+                ctx.restore();
+
+                // --- DRAW WEAPON FOR PLAYER 2 ---
+                const wName = player2.weapon ? player2.weapon.replace(/\s+/g, '') : 'Fist';
+                const p2Angle = player2.aimAngle || 0;
+
+                if (wName === 'Sword') {
+                    let drawAngle = p2Angle;
+                    let isFacingLeft = Math.abs(p2Angle) > Math.PI / 2;
+
+                    if (player2.isSwinging && player2.swingTimer > 0) {
+                        const progress = 1 - Math.max(0, player2.swingTimer / (player2.swingDuration || 0.2));
+                        drawAngle = (player2.swingBaseAngle || 0) - ((player2.swingSign || 1) * Math.PI / 1.5) + ((player2.swingSign || 1) * Math.PI * 1.33 * progress);
+                        isFacingLeft = Math.abs(drawAngle) > Math.PI / 2;
+                    }
+
+                    ctx.save();
+                    ctx.translate(screenX, screenY);
+                    ctx.rotate(drawAngle);
+                    if (isFacingLeft) ctx.scale(1, -1);
+                    ctx.rotate(Math.PI / 4);
+                    if (typeof swordImg !== 'undefined' && swordImg && swordImg.complete && swordImg.naturalWidth > 0) {
+                        ctx.drawImage(swordImg, 0, -60, 60, 60);
+                    }
+                    ctx.restore();
+
+                    // Optional: Draw the secondary slash arc for partner
+                    if (player2.isSwinging) {
+                        ctx.save();
+                        ctx.translate(screenX, screenY);
+                        ctx.beginPath();
+                        let startArc = (player2.swingBaseAngle || 0) - ((player2.swingSign || 1) * Math.PI / 1.5);
+                        ctx.arc(0, 0, 75, startArc, drawAngle, player2.swingSign === -1);
+                        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                        ctx.lineWidth = 10;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                } else if (wName === 'Bow') {
+                    ctx.save();
+                    ctx.translate(screenX, screenY);
+                    ctx.rotate(p2Angle);
+                    if (Math.abs(p2Angle) > Math.PI / 2) ctx.scale(1, -1);
+                    ctx.rotate(Math.PI / -4);
+                    if (typeof bowImg !== 'undefined' && bowImg && bowImg.complete && bowImg.naturalWidth > 0) {
+                        ctx.drawImage(bowImg, 4, 3, 40, 50);
+                    }
+                    ctx.restore();
+                } else if (wName === 'MagicWand') {
+                    ctx.save();
+                    ctx.translate(screenX, screenY);
+                    ctx.rotate(p2Angle);
+                    if (Math.abs(p2Angle) > Math.PI / 2) ctx.scale(1, -1);
+                    ctx.rotate(Math.PI / 4);
+                    if (typeof staffPlayerImg !== 'undefined' && staffPlayerImg && staffPlayerImg.complete && staffPlayerImg.naturalWidth > 0) {
+                        ctx.drawImage(staffPlayerImg, -10, -60, 60, 60);
+                    }
+                    ctx.restore();
+                } else if (wName === 'Gun') {
+                    ctx.save();
+                    ctx.translate(screenX, screenY);
+                    ctx.rotate(p2Angle);
+                    if (Math.abs(p2Angle) > Math.PI / 2) ctx.scale(1, -1);
+                    if (typeof gunImg !== 'undefined' && gunImg && gunImg.complete && gunImg.naturalWidth > 0) {
+                        ctx.drawImage(gunImg, 10, -15, 50, 30);
+                    }
+                    ctx.restore();
+                }
+
+                // Draw name
+                ctx.save();
+                ctx.font = '10px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#0f0'; // Name in green for P2
+                ctx.fillText(player2.name, screenX, screenY + drawHeight / 2 + 15);
+                ctx.restore();
+            }
+
+            function buy() {
+                if (player.isDead) return;
+
+                // Hide mobile controls to prevent overlapping
+                const mc = document.getElementById('mobile-controls');
+                if (mc) mc.style.display = 'none';
+
+                // Show the shop panel
+                document.getElementById('buy-panel-container').classList.add('show');
+                // Ensure wave handler knows shop is open
+                waveManager.isShopOpen = true;
+                // Update coin count in shop
+                document.getElementById('coinCount').textContent = gameLogic.coin;
+                // Initialize shop if needed
+                if (window.shopDeck) {
+                    window.shopDeck.coin = gameLogic.coin;
+                    window.shopDeck.renderCards();
+                }
+            }
+
+            window.applyShopUpgrade = function (title, shopDeck) {
+                console.log(`Applying shop upgrade: ${title}`);
+                if (title.includes('Buff Random')) {
+                    const buffs = ['Attack', 'Health', 'Speed', 'Cooldown', 'Amount', 'Armored'];
+                    const randomBuff = buffs[Math.floor(Math.random() * buffs.length)];
+                    if (typeof window.applyLevelUp === 'function') window.applyLevelUp(randomBuff);
+                    console.log('Buffed:', randomBuff);
+                } else if (title.includes('Coin / EXP Random')) {
+                    if (Math.random() < 0.5) {
+                        gameLogic.addXP(Math.floor(gameLogic.maxXP * 0.5));
+                    } else {
+                        gameLogic.coin += 50;
+                        if (document.getElementById('ui-coin')) document.getElementById('ui-coin').innerText = gameLogic.coin;
+                        if (shopDeck) {
+                            shopDeck.coin = gameLogic.coin;
+                            if (document.querySelector('#coinCount')) document.querySelector('#coinCount').textContent = shopDeck.coin;
+                        }
+                    }
+                } else if (title.includes('Piercing Bullets')) {
+                    if (typeof playerData !== 'undefined') playerData.pierce = (playerData.pierce || 0) + 1;
+                } else if (title.includes('Store discount')) {
+                    if (shopDeck) shopDeck.cost = Math.max(0, shopDeck.cost - 5);
+                } else if (title.includes('Free spin')) {
+                    if (shopDeck) {
+                        shopDeck.freeSpins = (shopDeck.freeSpins || 0) + 2;
+                        if (shopDeck.messageBox) shopDeck.messageBox.textContent = `Got 2 Free Spins! Total: ${shopDeck.freeSpins}`;
+                    }
+                } else if (title.includes('Re-armor')) {
+                    if (typeof playerData !== 'undefined') playerData.shieldRechargeRate = (playerData.shieldRechargeRate || 5) * 0.8;
+                } else if (title.includes('More Drop')) {
+                    if (typeof playerData !== 'undefined') playerData.dropMultiplier = (playerData.dropMultiplier || 1) + 0.5;
+                }
+                updateUIStats();
+            };
+
+
+            // Initialize shop deck
+            window.shopDeck = new UpgradeDeck({
+                cardsContainer: document.querySelector('#buy-panel-container .cards'),
+                refreshButton: document.getElementById('refreshBtn'),
+                buyButton: document.getElementById('buyBtn'),
+                closeButton: document.getElementById('closeBtn'),
+                messageBox: document.getElementById('messageBox')
+            });
+            window.shopDeck.coin = gameLogic.coin;
+            window.shopDeck.renderCards();
+
+            class LevelUpDeck {
+                constructor({ cardsContainer, selectButton, messageBox }) {
+                    this.cardsContainer = cardsContainer;
+                    this.selectButton = selectButton;
+                    this.messageBox = messageBox;
+                    this.selectedCard = null;
+                    const pStats = (typeof playerData !== 'undefined' && playerData.levelUpStats) ? playerData.levelUpStats : { atk: 2, hp: 1, spd: 5, cd: 0.05, prj: 1, arm: 1 };
+                    this.upgrades = [
+                        { title: 'Attack', description: `Increase your attack power by ${pStats.atk}.`, icon: 'img_buy/sword.png', className: 'atk' },
+                        { title: 'Health', description: `Increase your maximum HP by ${pStats.hp}.`, icon: 'img_buy/heart.png', className: 'hp' },
+                        { title: 'Speed', description: `Move faster and react quicker by ${pStats.spd}.`, icon: 'img_buy/item.png', className: 'spd' },
+                        { title: 'Cooldown', description: `Decrease your attack cooldown by ${pStats.cd}.`, icon: 'img_buy/reverse Trajectory.png', className: 'cd' },
+                        { title: 'Amount', description: `Fire ${pStats.prj} more projectile(s).`, icon: 'img_buy/double bullet.png', className: 'prj' },
+                        { title: 'Armored', description: `Increase your shield protection by ${pStats.arm}.`, icon: 'img_buy/armor.png', className: 'arm' }
+                    ];
+
+                    this.attachEvents();
+                }
+
+                shuffle(array) {
+                    return array.map(value => ({ value, sort: Math.random() }))
+                        .sort((a, b) => a.sort - b.sort)
+                        .map(({ value }) => value);
+                }
+
+                renderCards() {
+                    this.cardsContainer.innerHTML = '';
+                    this.selectedCard = null;
+
+                    const cards = this.shuffle(this.upgrades).slice(0, 3);
+                    cards.forEach(upgrade => {
+                        const card = document.createElement('div');
+                        card.className = `card ${upgrade.className}-card`;
+                        card.dataset.upgrade = upgrade.className;
+                        card.innerHTML = `
+                            <img src="${upgrade.icon}" class="icon ${upgrade.className}-icon" alt="${upgrade.title}">
+                            <div class="content">
+                                <h3>${upgrade.title}</h3>
+                                <p>${upgrade.description}</p>
+                            </div>
+                        `;
+
+                        card.addEventListener('mouseover', () => { card.style.borderColor = '#6eff5d'; });
+                        card.addEventListener('mouseout', () => {
+                            if (this.selectedCard !== card) card.style.borderColor = '#3a3f5a';
+                        });
+                        card.addEventListener('click', () => {
+                            this.cardsContainer.querySelectorAll('.card').forEach(c => c.style.borderColor = '#3a3f5a');
+                            this.selectedCard = card;
+                            card.style.borderColor = '#0a5a34';
+                        });
+
+                        this.cardsContainer.appendChild(card);
+                    });
+                }
+
+                applySelection() {
+                    if (!this.selectedCard) {
+                        this.messageBox.textContent = 'Please select a card first.';
+                        return;
+                    }
+                    const title = this.selectedCard.querySelector('h3').textContent;
+                    if (typeof window.applyLevelUp === 'function') {
+                        window.applyLevelUp(title);
+                    }
+                    this.closePanel();
+                }
+
+                closePanel() {
+                    const panel = document.getElementById('levelup-panel-container');
+                    if (panel) panel.classList.remove('show');
+
+                    // Show controls back if not opening another shop immediately
+                    const mc = document.getElementById('mobile-controls');
+                    if (mc && isMobile) mc.style.display = 'block';
+
+                    if (typeof onShopSessionEnded === 'function') onShopSessionEnded();
+                }
+
+                attachEvents() {
+                    this.selectButton.addEventListener('click', () => this.applySelection());
+                }
+            }
+
+            window.applyLevelUp = function (title) {
+                if (!playerData) return;
+                const pStats = playerData.levelUpStats || { atk: 2, hp: 1, spd: 5, cd: 0.05, prj: 1, arm: 1 };
+                if (title === 'Attack') {
+                    playerData.atk += pStats.atk;
+                    if (document.getElementById('ui-atk')) document.getElementById('ui-atk').innerText = playerData.atk;
+                } else if (title === 'Health') {
+                    playerData.maxHp += pStats.hp;
+                    playerData.hp += pStats.hp;
+                    if (typeof player !== 'undefined') {
+                        player.maxHp += pStats.hp;
+                        player.hp += pStats.hp;
+                    }
+                } else if (title === 'Speed') {
+                    playerData.spd += pStats.spd;
+                    if (typeof player !== 'undefined') player.speed += pStats.spd;
+                    if (document.getElementById('ui-spd')) document.getElementById('ui-spd').innerText = playerData.spd;
+                } else if (title === 'Cooldown') {
+                    let cdVal = parseFloat(playerData.cd) || 0;
+                    playerData.cd = (cdVal - pStats.cd).toFixed(2);
+                    if (document.getElementById('ui-cd')) document.getElementById('ui-cd').innerText = playerData.cd;
+                } else if (title === 'Amount') {
+                    playerData.projectile += pStats.prj;
+                    if (document.getElementById('ui-prj')) document.getElementById('ui-prj').innerText = playerData.projectile;
+                } else if (title === 'Armored') {
+                    playerData.armored += pStats.arm;
+                }
+                updateUIStats();
+            };
+
+            window.levelUpDeck = new LevelUpDeck({
+                cardsContainer: document.querySelector('#levelup-panel-container .lu-cards'),
+                selectButton: document.getElementById('lu-selectBtn'),
+                messageBox: document.getElementById('lu-messageBox')
+            });
+        </script>
+</body>
+
+</html>

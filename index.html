@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu</title>
+    <link rel="stylesheet" href="Menu/style.css">
+</head>
+<body>
+    <div id="orientation-overlay">
+        <div class="icon">📱🔄</div>
+        <h2 style="font-family: Arial, sans-serif; font-size: 1.2rem; color: #ff5d73;">PLEASE ROTATE DEVICE</h2>
+        <p style="margin-top: 10px; color: #ccc;">กรุณาหมุนโทรศัพท์ของคุณเป็นแนวนอนเพื่อเริ่มการเล่น</p>
+    </div>
+    <div id="gameCanvas">
+
+        <div id="Main_Logo">
+            <img src="./Menu/image/logo/0001.png" alt="logo" id="Logo">
+
+                <script type="module">
+                    import { animateLoop } from "./_module/animate_utils.js";
+
+                    let started = false;
+                    const press_any = document.getElementById("press_any");
+                    const playBtnContainer = document.getElementById("Play_button");
+                    const settingBtnContainer = document.getElementById("Setting_button");
+
+                    function startGame() {
+                        if (!started && press_any) {
+                            started = true;
+                            press_any.remove();
+                        }
+                        playBtnContainer.style.display = "block";
+                        settingBtnContainer.style.display = "block";
+                        if (typeof characterBtnContainer !== 'undefined') {
+                            characterBtnContainer.style.display = "block";
+                        }
+                    }
+
+                    document.addEventListener("keydown", startGame, { once: true });
+                    document.addEventListener("touchstart", startGame, { once: true });
+                    animateLoop("Logo", 40, 85.5, () => true);
+                </script>
+
+        </div>
+            
+        <div id="_container">
+            <div id="press_any">
+                <img src="./Menu/image/Press_any_key/0001.png" alt="press_any_key" id="Press_any_key"> 
+
+                <script type="module">
+                    import { animateLoop } from "./_module/animate_utils.js";
+                    animateLoop("Press_any_key", 40, 70.5, () => true);
+                </script>
+            </div>
+        </div>
+
+        <div id="Play_button">
+            <img src="./Menu/image/Play/0001.png" alt="play" id="Play_btn">
+                <script type="module">
+                    import { animateLoopStable } from "./_module/animate_utils.js";
+                    import { playClick } from "./_module/sound_manager.js";
+                    const playBtn = document.getElementById("Play_btn");
+                    
+                    animateLoopStable("Play_btn", 40, 50.5, () => true);
+
+                    playBtn.addEventListener("mouseenter", () => {
+                        playBtn.src = "./Menu/image/Play_choose/0001.png";
+                    });
+                    playBtn.addEventListener("mouseleave", () => {
+                        playBtn.src = "./Menu/image/Play/0001.png";
+                    });
+                    playBtn.addEventListener("click", () => {
+                        playClick();
+                        setTimeout(() => { window.location.href = "./PC and Mobile/PC_Mobile.html"; }, 150);
+                    });
+                </script>
+        </div>
+
+        <div id="Setting_button">
+            <img src="./Menu/image/Setting/0001.png" alt="setting" id="Setting_btn">
+                <script type="module">
+                    import { animateLoopStable } from "./_module/animate_utils.js";
+                    import { playClick } from "./_module/sound_manager.js";
+                    const settingBtn = document.getElementById("Setting_btn");
+                    
+                    animateLoopStable("Setting_btn", 40, 50.5, () => true);
+
+                    settingBtn.addEventListener("mouseenter", () => {
+                        settingBtn.src = "./Menu/image/Setting_choose/0001.png";
+                    });
+                    settingBtn.addEventListener("mouseleave", () => {
+                        settingBtn.src = "./Menu/image/Setting/0001.png";
+                    });
+                    settingBtn.addEventListener("click", () => {
+                        playClick();
+                        setTimeout(() => { window.location.href = "./Settings/Settings.html"; }, 150);
+                    });
+                </script>
+        </div>
+
+
+        <div id="Version">
+            <img src="./Menu/image/Version/Version_alpha.png" alt="version" id="Version_img">
+        </div>
+
+        <div id="Background">
+            <img src="./Menu/image/Background/Sprite-0001.png" alt="background" id="Background_img">
+        </div>
+
+        <div id="Black">
+            <img src="./Menu/image/Background/Black_L.png" alt="black_L" id="Black_img_L">
+            <img src="./Menu/image/Background/Black_R.png" alt="black_R" id="Black_img_R">
+        </div>
+
+        <script>
+            function updateMenuScale() {
+                const baseWidth = 1920; 
+                const baseHeight = 1080;
+                
+                // Calculate scale to fit width or height (letterboxing if needed)
+                const scaleX = window.innerWidth / baseWidth;
+                const scaleY = window.innerHeight / baseHeight;
+                const scale = Math.min(scaleX, scaleY);
+                
+                // Set scale variable to be used by CSS
+                document.documentElement.style.setProperty('--scale', scale);
+                
+                // Lock orientation if possible
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => { /* Ignore on non-mobile or if no interaction */ });
+                }
+            }
+            window.addEventListener('resize', updateMenuScale);
+            updateMenuScale();
+        </script>
+
+    </div>
+</body>
+</html>

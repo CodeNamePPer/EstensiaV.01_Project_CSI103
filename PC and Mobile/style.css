@@ -1,0 +1,167 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1b1b1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    transform: scale(var(--scale, 1));
+    transform-origin: center center;
+    image-rendering: pixelated;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+
+.all-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(60px, 8vw, 200px);
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.device-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 35px;
+}
+
+.device-text {
+    width: clamp(180px, 25vw, 320px);
+    height: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+    #gameCanvas {
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .all-container {
+        flex-direction: column;
+        gap: 80px;
+        padding: 60px 0;
+        height: auto;
+        min-height: 100%;
+    }
+
+    .device-wrapper {
+        gap: 20px;
+    }
+
+    .device-card {
+        width: min(340px, 75vw);
+        height: min(340px, 75vw);
+    }
+}
+
+.device-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(460px, 85vw);
+    height: min(460px, 85vw);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    border: 7px solid transparent;
+}
+
+.device-card:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 7px solid rgba(255, 255, 255, 1);
+}
+
+.device-images {
+    position: relative;
+    width: 100%;
+    height: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#Keyboard,
+#Phone {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.6);
+    z-index: 2;
+    pointer-events: none;
+    background-color: rgba(255, 255, 255, );
+}
+
+#Keyboard {
+    clip-path: inset(45px 39px 50px 39px);
+}
+
+#Phone {
+    clip-path: inset(45px 39px 50px 26px);
+}
+
+.Outline_1,
+.Outline_2 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.44);
+    z-index: 0;
+    pointer-events: none;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Orientation Warning Overlay */
+#orientation-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #111;
+    color: #fff;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    text-align: center;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+#orientation-overlay .icon {
+    font-size: 50px;
+    margin-bottom: 20px;
+    animation: rotateIcon 2s infinite ease-in-out;
+}
+
+@keyframes rotateIcon {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@media screen and (orientation: portrait) {
+    #orientation-overlay {
+        display: flex;
+    }
+}

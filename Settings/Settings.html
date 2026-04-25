@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* จัดตำแหน่ง Setting Box ให้อยู่กึ่งกลางหน้าจอเหนือ Background */
+        .setting-box {
+            position: relative;
+            z-index: 10;
+            max-width: 70%;
+            width: 800px;
+            min-height: 500px;
+            background-color: rgba(128, 128, 128, 0.9); /* เพิ่มความโปร่งแสงเล็กน้อยให้เห็นพื้นหลัง */
+            border-radius: 10px;
+            padding: 30px;
+            margin: 200px auto;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            font-family: 'Blasphemous_3', sans-serif; /* ใช้ Font เดียวกับธีมหลัก */
+            color: white;
+        }
+
+        .setting-box h3 {
+            color: #b69684;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #5a1a0a;
+            padding-bottom: 5px;
+        }
+
+        .volume-slider, .sensitivity-slider {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #B30000;
+            margin-bottom: 20px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #4a4a4a;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+        }
+
+        .control-row button {
+            padding: 8px 15px;
+            min-width: 70px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            background-color: #A68A7A;
+            font-family: 'Blasphemous_3', sans-serif;
+        }
+
+        .control-row button:hover {
+            background-color: #B30000;
+            color: white;
+        }
+
+        .waiting {
+            background-color: #ffcc00 !important;
+            animation: blink 1s infinite;
+        }
+
+        .save-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #B30000;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            font-weight: bold;
+        }
+
+        .action {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .action button {
+            padding: 10px 25px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Blasphemous_3', sans-serif;
+            background-color: #A68A7A;
+            border: none;
+        }
+
+        .action button:hover {
+            background-color: #B30000;
+            color: white;
+        }
+
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div id="gameCanvas">
+        
+        <div id="Main_Logo" class="GlowEffect">Settings</div>
+
+        <div class="setting-box">
+            <h3>Sound: <span id="volume-val">100</span></h3>
+            <input type="range" class="volume-slider" id="vol-input" min="0" max="100" value="100">
+
+            <h3>Sensitivity: <span id="sensitivity-val">100</span></h3>
+            <input type="range" class="sensitivity-slider" id="sen-input" min="0" max="100" value="100">
+
+            <h3>Controls</h3>
+            <div id="controls-list"></div>
+
+            <div class="action">
+                <button onclick="resetDefault()">RESET</button>
+                <button onclick="saveSetting()">CONFIRM</button>
+            </div>
+        </div>
+
+        <button id="Back">Back</button>
+
+        <div id="Background">
+            <img src="../Settings/image/Background/Sprite-0001.png" alt="background" id="Background_img">
+        </div>
+    </div>
+
+    <script type="module">
+        import { getSetting, saveSetting as persistSetting, getDefaults } from '../_module/settings_manager.js';
+        import { playClick } from '../_module/sound_manager.js';
+
+        // ─── Sliders ────────────────────────────────────────────────────────────
+        const volInput = document.getElementById('vol-input');
+        const volVal   = document.getElementById('volume-val');
+        const senInput = document.getElementById('sen-input');
+        const senVal   = document.getElementById('sensitivity-val');
+
+        // Play a test sound whenever the volume slider moves so user gets feedback
+        let volDebounce = null;
+        volInput.addEventListener('input', () => {
+            volVal.innerText = volInput.value;
+            clearTimeout(volDebounce);
+            volDebounce = setTimeout(() => {
+                // Temporarily write volume so playClick() uses the preview value
+                persistSetting('soundVolume', Number(volInput.value));
+                playClick();
+            }, 300);
+        });
+
+        senInput.addEventListener('input', () => { senVal.innerText = senInput.value; });
+
+        // ─── Controls ───────────────────────────────────────────────────────────
+        const defaultControls = getDefaults().controls;
+        let currentControls = { ...defaultControls };
+        let bindingKey = null;
+        const listContainer = document.getElementById('controls-list');
+
+        function renderControls() {
+            listContainer.innerHTML = "";
+            for (let action in currentControls) {
+                const row = document.createElement('div');
+                row.className = 'control-row';
+                row.innerHTML = `
+                    <span>${action}</span>
+                    <button id="btn-${action}">${currentControls[action]}</button>
+                `;
+                // Attach listener instead of inline onclick so it works inside a module
+                row.querySelector('button').addEventListener('click', () => startBinding(action));
+                listContainer.appendChild(row);
+            }
+        }
+
+        function startBinding(action) {
+            bindingKey = action;
+            const btn = document.getElementById(`btn-${action}`);
+            btn.innerText = "???";
+            btn.classList.add('waiting');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (bindingKey) {
+                let newKey = e.key.toUpperCase();
+                if (newKey === " ") newKey = "SPC";
+                currentControls[bindingKey] = newKey;
+                bindingKey = null;
+                renderControls();
+            }
+        });
+
+        // ─── Action buttons ─────────────────────────────────────────────────────
+        function resetDefault() {
+            playClick();
+            const defaults = getDefaults();
+            volInput.value       = defaults.soundVolume;
+            volVal.innerText     = defaults.soundVolume;
+            senInput.value       = defaults.sensitivity;
+            senVal.innerText     = defaults.sensitivity;
+            currentControls = { ...defaults.controls };
+            renderControls();
+        }
+
+        function saveAllSettings() {
+            playClick();
+            persistSetting('soundVolume', Number(volInput.value));
+            persistSetting('sensitivity',  Number(senInput.value));
+            persistSetting('controls',     currentControls);
+
+            const popup = document.createElement('div');
+            popup.className  = 'save-popup';
+            popup.innerText  = "Settings Saved Successfully";
+            document.body.appendChild(popup);
+            setTimeout(() => { popup.remove(); }, 2000);
+        }
+
+        // Wire action buttons (they use onclick="" in HTML, expose to window)
+        window.resetDefault = resetDefault;
+        window.saveSetting  = saveAllSettings;
+
+        // ─── Back button ─────────────────────────────────────────────────────────
+        document.getElementById("Back").addEventListener('click', () => {
+            playClick();
+            setTimeout(() => { window.location.href = "../index.html"; }, 150);
+        });
+
+        // ─── Load saved settings on startup ──────────────────────────────────────
+        const savedVolume      = getSetting('soundVolume');
+        const savedSensitivity = getSetting('sensitivity');
+        const savedControls    = getSetting('controls');
+
+        volInput.value   = savedVolume;
+        volVal.innerText = savedVolume;
+        senInput.value   = savedSensitivity;
+        senVal.innerText = savedSensitivity;
+        currentControls  = { ...defaultControls, ...savedControls };
+
+        renderControls();
+    </script>
+</body>
+</html>

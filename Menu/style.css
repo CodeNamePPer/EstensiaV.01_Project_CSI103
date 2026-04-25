@@ -1,0 +1,168 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #140209;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    transform: scale(var(--scale, 1));
+    transform-origin: center center;
+    image-rendering: pixelated;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+#Main_Logo {
+    position: absolute;
+    top: 425px;
+    left: 50%;
+    transform: translate(-53%) scale(5.15); /* Keep original -53% which centers this specific image */
+    z-index: 2;
+    pointer-events: none;
+    filter: hue-rotate(-20deg) saturate(1.825) brightness(0.855);
+}
+
+#_container {
+    position: absolute;
+    top: 675px;
+    left: 50%;
+    transform: translateX(-49%) scale(1.25);
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(4, auto);
+    gap: 55px;
+}
+
+#Play_button,
+#Setting_button,
+#Character_button {
+    display: none;
+}
+
+#Play_button {
+    position: absolute;
+    top: 650px;
+    left: 50%;
+    transform: translateX(-50%) scale(1.25);
+    clip-path: inset(55px 310px 50px 325px);
+    z-index: 3;
+}
+
+#Setting_button {
+    position: absolute;
+    top: 755px;
+    left: 50%;
+    transform: translateX(-50%) scale(1.25);
+    clip-path: inset(55px 190px 50px 330px);
+    z-index: 3;
+}
+
+#Character_button {
+    position: absolute;
+    top: 860px;
+    left: 50%;
+    transform: translateX(-50%) scale(1.25);
+    clip-path: inset(55px 190px 50px 330px);
+    z-index: 3;
+}
+
+#Character_btn {
+    cursor: pointer;
+}
+
+#Version_img {
+    position: absolute;
+    top: 20px;
+    right: 17%;
+    transform: scale(0.45);
+    transform-origin: top right;
+    z-index: 3;
+}
+
+#Background {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2500px; /* Oversized width to cover empty margins if scaled down */
+    height: 1080px;
+    z-index: -1;
+}
+
+#Background_img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+    filter: brightness(1.5) contrast(1.1); 
+}
+
+#Black {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    background-color: black;
+}
+
+#Black_img_R {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%) scale(1.15);
+    z-index: 0;
+}
+
+#Black_img_L {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%) scale(1.15);
+    z-index: 0;
+}
+
+/* Orientation Warning Overlay */
+#orientation-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #111;
+    color: #fff;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    text-align: center;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+#orientation-overlay .icon {
+    font-size: 50px;
+    margin-bottom: 20px;
+    animation: rotateIcon 2s infinite ease-in-out;
+}
+
+@keyframes rotateIcon {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@media screen and (orientation: portrait) {
+    #orientation-overlay {
+        display: flex;
+    }
+}

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Select</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ---- Layout ---- */
+        #cs-wrapper {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            z-index: 5;
+        }
+
+        /* ---- Grid ---- */
+        #_container {
+            display: grid;
+            grid-template-columns: repeat(2, 45vmin); /* Responsive width */
+            grid-template-rows: repeat(2, 25vmin); /* Responsive height */
+            gap: 2vmin;
+            position: static;
+            left: unset;
+            top: unset;
+            width: auto;
+            height: auto;
+        }
+
+        /* ---- Card ---- */
+        .PlatBtn {
+            position: relative;
+            background: rgba(18, 6, 6, 0.88);
+            border: 1px solid #3a1508;
+            cursor: pointer;
+            transition: border-color 0.25s, transform 0.25s;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .PlatBtn:hover  { border-color: #B30000; transform: translateY(-4px); }
+        .PlatBtn.active { border-color: #ff4400; box-shadow: 0 0 20px rgba(179,0,0,0.45); }
+
+        /* ---- Left info panel ---- */
+        .card-info {
+            flex: 1;
+            padding: 14px 0 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .card-name {
+            font-family: 'BadBoys', sans-serif;
+            font-size: 20px;
+            color: #c8a07a;
+            letter-spacing: 1px;
+            margin: 0 0 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .PlatBtn:hover .card-name,
+        .PlatBtn.active .card-name { color: #fff; text-shadow: 0 0 8px #B30000; }
+
+        .card-weapon {
+            font-family: 'Blasphemous_3', sans-serif;
+            font-size: 12px;
+            color: #5a3a28;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .PlatBtn:hover .card-weapon { color: #7a5040; }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Blasphemous_3', sans-serif;
+            font-size: 13px;
+            color: #9a7060;
+            line-height: 1.5;
+        }
+        .stat-icon { font-size: 13px; width: 16px; text-align: center; }
+        .PlatBtn:hover .stat-row { color: #c0a080; }
+
+        /* ---- Right portrait panel ---- */
+        .card-portrait {
+            width: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 10px;
+            background: rgba(30, 5, 5, 0.5);
+            border-left: 1px solid #3a1508;
+            position: relative;
+        }
+
+        .card-portrait-icon {
+            font-size: 72px;
+            line-height: 1;
+            filter: grayscale(0.45);
+            transition: filter 0.3s;
+        }
+        .PlatBtn:hover .card-portrait-icon,
+        .PlatBtn.active .card-portrait-icon { filter: grayscale(0); }
+
+        .card-portrait-name {
+            font-family: 'Blasphemous_3', sans-serif;
+            font-size: 12px;
+            color: #7a5040;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+        .PlatBtn:hover .card-portrait-name { color: #c08060; }
+
+        /* ---- Bottom bar ---- */
+        #cs-footer {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        #cs-name-input, #cs-join-input {
+            background: rgba(20,6,6,0.9);
+            border: 1px solid #4a2018;
+            color: #c8a07a;
+            font-family: 'Blasphemous_3', sans-serif;
+            font-size: 14px;
+            padding: 9px 16px;
+            outline: none;
+            letter-spacing: 1px;
+        }
+        #cs-name-input { width: 240px; }
+        #cs-join-input { width: 120px; text-align: center; letter-spacing: 2px; }
+        #cs-name-input::placeholder, #cs-join-input::placeholder { color: #4a2a1a; }
+        #cs-name-input:focus, #cs-join-input:focus { border-color: #8a3020; }
+
+        .cs-btn {
+            font-family: 'Blasphemous_3', sans-serif;
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 10px 26px;
+            border: 1px solid #4a2018;
+            background: rgba(18,5,5,0.92);
+            color: #6a4030;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cs-btn:hover { border-color: #8a3020; color: #c07050; }
+
+        .cs-btn-primary {
+            border-color: #B30000;
+            color: #e07050;
+            background: rgba(38,5,5,0.95);
+        }
+        .cs-btn-primary:hover {
+            background: rgba(95,10,10,0.92);
+            color: #ffb090;
+            box-shadow: 0 0 14px rgba(179,0,0,0.35);
+        }
+        .cs-btn-primary:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+
+        /* Responsive scaling for mobile landscape */
+        @media screen and (max-height: 500px) {
+            #Main_Logo { font-size: 7vmin !important; margin-bottom: 1vmin !important; }
+            #cs-wrapper { 
+                gap: 2vmin !important; 
+                padding: 5vmin 0 15vmin 0 !important; /* เยอะๆ ข้างล่างเผื่อติดขอบสลัดของมือถือ */
+                justify-content: flex-start !important; 
+                overflow-y: auto !important; 
+                -webkit-overflow-scrolling: touch;
+            }
+            #cs-footer { margin-top: 1vmin !important; }
+            #cs-modes { margin-top: 1vmin !important; }
+            #_container { grid-template-rows: repeat(2, 22vmin) !important; gap: 1vmin !important; }
+            .cs-btn { padding: 1.5vmin 3vmin !important; font-size: 3vmin !important; min-width: 18vmin !important; }
+            #cs-name-input { padding: 1.2vmin 2vmin !important; font-size: 3.5vmin !important; width: 45vmin !important; }
+            #cs-join-input { padding: 1.2vmin 2vmin !important; font-size: 3.5vmin !important; width: 30vmin !important; text-align: center; }
+            #room-status { font-size: 4vmin !important; margin-top: 2vmin; padding-bottom: 20vmin !important; }
+            .card-name { font-size: 2.5vmin !important; }
+            .card-weapon { font-size: 1.8vmin !important; }
+            .stat-row { font-size: 1.8vmin !important; gap: 4px !important; }
+            .card-portrait { width: 100px !important; }
+            .card-portrait-icon { font-size: 40px !important; }
+        }
+
+        /* Orientation Warning Overlay */
+        #orientation-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #111;
+            color: #fff;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            text-align: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        #orientation-overlay .icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+            animation: rotateIcon 2s infinite ease-in-out;
+        }
+
+        @keyframes rotateIcon {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @media screen and (orientation: portrait) {
+            #orientation-overlay {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="orientation-overlay">
+        <div class="icon">📱🔄</div>
+        <h2 style="font-family: Arial, sans-serif; font-size: 1.2rem; color: #ff5d73;">PLEASE ROTATE DEVICE</h2>
+        <p style="margin-top: 10px; color: #ccc;">กรุณาหมุนโทรศัพท์ของคุณเป็นแนวนอนเพื่อเริ่มการเล่น</p>
+    </div>
+<div id="gameCanvas">
+
+    <div id="cs-wrapper">
+        <div id="Main_Logo" class="GlowEffect">Select your class</div>
+
+        <div id="_container"></div>
+
+        <div id="cs-footer">
+            <input id="cs-name-input" type="text" placeholder="Enter Survivor Name..." maxlength="20">
+            <button class="cs-btn" id="cs-back-btn">← Back</button>
+        </div>
+
+        <div id="cs-modes" style="display: flex; gap: 16px; margin-top: 10px;">
+             <button class="cs-btn cs-btn-primary" id="cs-confirm-btn" disabled style="min-width: 180px;">START SOLO</button>
+             <button class="cs-btn" id="cs-show-multi-btn" disabled style="background: rgba(30, 30, 60, 0.9); border-color: #55f;">ONLINE LOBBY</button>
+        </div>
+
+        <div id="cs-multiplayer" style="display: none; flex-direction: column; gap: 16px; align-items: center; justify-content: center; margin-top: 20px; border-top: 1px solid #4a2018; padding-top: 20px; z-index: 10;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="cs-btn" id="cs-host-btn" style="background: rgba(5, 55, 5, 0.9); border-color: #0aa;">Create Room</button>
+                <span style="color: #6a4030; font-family: 'Blasphemous_3', sans-serif;">OR</span>
+                <input id="cs-join-input" type="text" placeholder="5-Digit Code" maxlength="5">
+                <button class="cs-btn" id="cs-join-btn" style="background: rgba(55, 55, 5, 0.9); border-color: #aa0;">Join Room</button>
+            </div>
+            <div id="room-status" style="text-align: center; color: #ccc; font-family: 'Prompt', sans-serif; font-size: 1rem;"></div>
+        </div>
+
+
+    </div>
+
+    </div>
+
+    <!-- Load PeerJS and Network Manager -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="../Network.js"></script>
+
+    <script>
+        const classes = [
+            {
+                id: "class_1",
+                name: "นักดาบ",  eng: "Swordsman",  weapon: "Sword",
+                icon: "../Character_Selection/image/Character/photo-output (2).png",
+                hp: 4, atk: 12, spd: 12, cd: "2 sec", proj: "+0 Projectile"
+            },
+            {
+                id: "class_2",
+                name: "นักเวท", eng: "Mage",       weapon: "Magic Wand",
+                icon: "../Character_Selection/image/Character/photo-output (3).png",
+                hp: 3, atk: 9,  spd: 18, cd: "18 sec", proj: "+0 Projectile"
+            },
+            {
+               id: "class_3",
+               name: "นักธนู",  eng: "Archer",  weapon: "Arrow",
+               icon: "../Character_Selection/image/Character/photo-output.png", // ใส่ path รูปของคุณตรงนี้
+               hp: 4, atk: 12, spd: 12, cd: "2 sec", proj: "+0 Projectile"
+           },
+            {
+                id: "class_4",
+                name: "มือปืน",  eng: "Gunner",      weapon: "Gun",
+                icon: "../Character_Selection/image/Character/photo-output (1).png",
+                hp: 3, atk: 10, spd: 16, cd: "16 sec", proj: "+0 Projectile"
+            },
+            
+        ];
+
+        let selected = null;
+        const container  = document.getElementById("_container");
+        const confirmBtn = document.getElementById("cs-confirm-btn");
+        const backBtn    = document.getElementById("cs-back-btn");
+        const nameInput  = document.getElementById("cs-name-input");
+        const hostBtn    = document.getElementById("cs-host-btn");
+        const joinBtn    = document.getElementById("cs-join-btn");
+        const joinInput  = document.getElementById("cs-join-input");
+        const roomStatus = document.getElementById("room-status");
+        const showMultiBtn = document.getElementById("cs-show-multi-btn");
+        const multiPanel   = document.getElementById("cs-multiplayer");
+
+        // Get device from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const device = urlParams.get('device');
+        const deviceParam = device ? '&device=' + device : '';
+
+        backBtn.onclick = () => {
+            if (typeof network !== 'undefined') network.destroy();
+            window.location.href = "../index.html"; 
+        };
+
+        showMultiBtn.onclick = () => {
+            multiPanel.style.display = 'flex';
+            showMultiBtn.style.display = 'none';
+        };
+
+        confirmBtn.onclick = () => {
+            if (selected) {
+                let name = nameInput.value.trim();
+                if (!name) {
+                    const names = ['Pasqualina', 'Gennaro', 'Arca', 'Porta', 'Poe', 'Clerici', 'Dommario', 'Krochi'];
+                    name = names[Math.floor(Math.random() * names.length)];
+                }
+                const targetUrl = '../GameTest.html?name=' + encodeURIComponent(name) + '&class=' + encodeURIComponent(selected.name) + deviceParam;
+                window.location.href = targetUrl;
+            }
+        };
+
+        let generatedRoomId = '';
+
+        hostBtn.onclick = () => {
+            if (!selected) return;
+            generatedRoomId = NetworkManager.generateRoomId();
+            roomStatus.innerHTML = `Room Created! Code: <br><strong id="generatedCode" style="color: #ffb090; font-size: 2.5rem; letter-spacing: 4px; display: inline-block; margin: 8px 0;">${generatedRoomId}</strong><br>Waiting for guest to connect...`;
+            
+            // Auto scroll to the code so user can see it immediately on mobile
+            setTimeout(() => {
+                document.getElementById('generatedCode').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+            
+            network.onConnected = () => {
+                roomStatus.innerHTML = `<span style="color: #4CAF50; font-weight: bold;">Guest Connected! Starting game...</span>`;
+                setTimeout(() => {
+                    let name = nameInput.value.trim() || 'HostPlayer';
+                    window.location.href = `../GameTest.html?name=${encodeURIComponent(name)}&class=${encodeURIComponent(selected.name)}&mode=host&room=${generatedRoomId}${deviceParam}`;
+                }, 1000);
+            };
+            
+            network.onError = (err) => {
+                roomStatus.innerHTML = `<span style="color: #f44336;">Error: ${err.type}</span>`;
+            };
+
+            network.initHost(generatedRoomId);
+        };
+
+        joinBtn.onclick = () => {
+            if (!selected) return;
+            const code = joinInput.value.trim();
+            if (code.length !== 5) {
+                alert("Please enter a 5-digit room code.");
+                return;
+            }
+            roomStatus.innerHTML = `Connecting to room <strong style="color: #ffb090;">${code}</strong>...`;
+            
+            network.onConnected = () => {
+                roomStatus.innerHTML = `<span style="color: #4CAF50; font-weight: bold;">Connected! Starting game...</span>`;
+                setTimeout(() => {
+                    let name = nameInput.value.trim() || 'GuestPlayer';
+                    window.location.href = `../GameTest.html?name=${encodeURIComponent(name)}&class=${encodeURIComponent(selected.name)}&mode=join&room=${code}${deviceParam}`;
+                }, 1000);
+            };
+
+            network.onError = (err) => {
+                roomStatus.innerHTML = `<span style="color: #f44336;">Error connecting to host. Check the code.</span>`;
+            };
+
+            network.initJoin(code);
+        };
+
+        // Handle generic class selection activation
+        function onClassSelected() {
+            confirmBtn.disabled = false;
+            showMultiBtn.disabled = false;
+        }
+
+        // Auto-focus ช่องใส่ชื่อเมื่อโหลดหน้า
+        window.addEventListener('load', () => {
+            setTimeout(() => { nameInput.focus(); }, 100);
+        });
+
+        classes.forEach(c => {
+            const card = document.createElement("div");
+            card.className = "PlatBtn";
+            card.id = c.id;
+            // ค้นหาบรรทัด card.innerHTML แล้วเปลี่ยนเป็นแบบนี้:
+card.innerHTML = `
+    <div class="card-info">
+        <div class="card-name">${c.eng}</div>
+        <div class="card-weapon">${c.weapon}</div>
+        <div class="stat-row"><span class="stat-icon">❤️</span> ${c.hp}</div>
+        <div class="stat-row"><span class="stat-icon">💪</span> ${c.atk}</div>
+        <div class="stat-row"><span class="stat-icon">👟</span> ${c.spd}</div>
+        <div class="stat-row"><span class="stat-icon">⏱</span> ${c.cd}</div>
+        <div class="stat-row"><span class="stat-icon">🔴</span> ${c.proj}</div>
+    </div>
+    <div class="card-portrait">
+        <div class="card-portrait-icon">
+            <img src="${c.icon}" alt="${c.eng}" style="width: 100%; height: auto; image-rendering: pixelated;">
+        </div>
+        <div class="card-portrait-name">${c.eng}</div>
+    </div>
+`;
+            card.addEventListener("click", () => {
+                document.querySelectorAll(".PlatBtn").forEach(b => b.classList.remove("active"));
+                card.classList.add("active");
+                selected = c;
+                onClassSelected();
+            });
+            container.appendChild(card);
+        });
+    </script>
+
+    <button id="Back">Back</button>
+    <script>
+        document.getElementById("Back").style.display = "none";
+    </script>
+    <div id="Background">
+            <img src="../Settings/image/Background/Sprite-0001.png" alt="background" id="Background_img">
+        </div>
+
+</div>
+</body>
+</html>
